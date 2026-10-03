@@ -14,13 +14,15 @@ export default async function handler(req, res) {
         style: 'Pop',
         lyrics: letra,
         prompt: descripcion || 'Canción personalizada',
-        vocalGender
+        vocalGender,
+        model: 'V6'
       }
     : {
         customMode: false,
         instrumental: false,
         prompt: descripcion,
-        vocalGender
+        vocalGender,
+        model: 'V6'
       };
 
   try {
