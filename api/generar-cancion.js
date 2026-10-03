@@ -5,6 +5,7 @@ export default async function handler(req, res) {
 
   const { paraQuien, descripcion, letra, modoLetra, voz } = req.body;
   const vocalGender = voz === 'femenina' ? 'f' : 'm';
+  const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
 
   const cuerpo = modoLetra
     ? {
@@ -15,14 +16,16 @@ export default async function handler(req, res) {
         lyrics: letra,
         prompt: descripcion || 'Canción personalizada',
         vocalGender,
-        model: 'V6'
+        model: 'V6',
+        callBackUrl
       }
     : {
         customMode: false,
         instrumental: false,
         prompt: descripcion,
         vocalGender,
-        model: 'V6'
+        model: 'V6',
+        callBackUrl
       };
 
   try {
