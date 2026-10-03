@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba sunoapi</title>
+<style>
+  body{font-family:sans-serif; max-width:480px; margin:2rem auto; padding:0 1rem;}
+  button{padding:12px 20px; font-size:16px; margin:10px 0;}
+  #resultado{white-space:pre-wrap; background:#f0f0f0; padding:10px; border-radius:8px; font-size:13px;}
+  audio{width:100%; margin:8px 0;}
+</style>
+</head>
+<body>
+<h2>Prueba de generación</h2>
+<button id="btnGenerar">Generar canción de prueba</button>
+<div id="resultado">Esperando...</div>
+<div id="audios"></div>
+
+<script>
+const resultado = document.getElementById('resultado');
+const audios = document.getElementById('audios');
+
+document.getElementById('btnGenerar').onclick = async () => {
+  resultado.textContent = 'Enviando pedido a sunoapi.org...';
+  audios.innerHTML = '';
+
+  const resp = await fetch('/api/generar-cancion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      paraQuien: 'Prueba',
+      descripcion: 'Balada romantica alegre, para probar el sistema',
+      modoLetra: false,
+      voz: 'masculina'
+    })
+  });
+  const data = await resp.json();
+  resultado.textContent = 'Respuesta inicial:\n' + JSON.stringify(data, null, 2);
+
+  const taskId = data?.data?.taskId;
+  if (!taskId) { resultado.textContent += '\n\nNo se encontró taskId.'; return; }
+
+  resultado.textContent += '\n\nEsperando que termine (puede tardar 1-2 minutos)...';
+  revisar(taskId);
+};
+
+async function revisar(taskId){
+  const resp = await fetch('/api/estado-cancion?taskId=' + taskId);
+  const data = await resp.json();
+  const estado = data?.data?.status;
+
+  if (estado === 'SUCCESS') {
+    resultado.textContent = '¡Listo!\n' + JSON.stringify(data, null, 2);
+    const pistas = data?.data?.response?.data || [];
+    pistas.forEach((p, i) => {
+      audios.innerHTML += `<p>Versión ${i+1}</p><audio controls src="${p.audio_url}"></audio>`;
+    });
+    return;
+  }
+  if (estado === 'FAILED') {
+    resultado.textContent = 'Falló:\n' + JSON.stringify(data, null, 2);
+    return;
+  }
+  resultado.textContent = 'Todavía generando... (' + estado + ')';
+  setTimeout(() => revisar(taskId), 8000);
+}
+</script>
+</body>
+</html>
