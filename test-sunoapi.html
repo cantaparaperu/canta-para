@@ -45,16 +45,21 @@ document.getElementById('btnGenerar').onclick = async () => {
   revisar(taskId);
 };
 
+let intentos = 0;
+
 async function revisar(taskId){
+  intentos++;
   const resp = await fetch('/api/estado-cancion?taskId=' + taskId);
   const data = await resp.json();
   const estado = data?.data?.status;
+  const pistas = data?.data?.response?.sunoData || [];
+  const listas = pistas.filter(p => p.audio_url);
 
-  if (estado === 'SUCCESS') {
-    resultado.textContent = '¡Listo!\n' + JSON.stringify(data, null, 2);
-    const pistas = data?.data?.response?.data || [];
-    pistas.forEach((p, i) => {
-      audios.innerHTML += `<p>Versión ${i+1}</p><audio controls src="${p.audio_url}"></audio>`;
+  if (listas.length > 0) {
+    resultado.textContent = '¡Listo! Se generaron ' + listas.length + ' versión(es).';
+    audios.innerHTML = '';
+    listas.forEach((p, i) => {
+      audios.innerHTML += `<p>Versión ${i+1}: ${p.title || ''}</p><audio controls src="${p.audio_url}"></audio>`;
     });
     return;
   }
@@ -62,7 +67,11 @@ async function revisar(taskId){
     resultado.textContent = 'Falló:\n' + JSON.stringify(data, null, 2);
     return;
   }
-  resultado.textContent = 'Todavía generando... (' + estado + ')';
+  if (intentos > 25) {
+    resultado.textContent = 'Han pasado más de 3 minutos sin audio. Última respuesta:\n' + JSON.stringify(data, null, 2);
+    return;
+  }
+  resultado.textContent = 'Todavía generando... (intento ' + intentos + ', estado: ' + estado + ')';
   setTimeout(() => revisar(taskId), 8000);
 }
 </script>
