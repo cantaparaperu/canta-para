@@ -30,6 +30,67 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({ estado: 'PAGADO' })
       });
+
+      // Buscar el pedido para obtener sus datos
+      const respuestaPedido = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=*`,
+        {
+          headers: {
+            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+          }
+        }
+      );
+      const filas = await respuestaPedido.json();
+      const pedido = filas?.[0];
+
+      if (pedido) {
+        const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
+        const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
+
+        const cuerpo = pedido.modo_letra
+          ? {
+              customMode: true,
+              instrumental: false,
+              title: pedido.dedicado_a || 'Mi canción',
+              style: 'Pop',
+              lyrics: pedido.letra || pedido.descripcion || 'Canción personalizada',
+              prompt: pedido.descripcion || 'Canción personalizada',
+              vocalGender,
+              model: 'V6',
+              callBackUrl
+            }
+          : {
+              customMode: false,
+              instrumental: false,
+              prompt: pedido.descripcion || 'Canción personalizada',
+              vocalGender,
+              model: 'V6',
+              callBackUrl
+            };
+
+        const respuestaSuno = await fetch('https://api.sunoapi.org/api/v1/generate', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.SUNO_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(cuerpo)
+        });
+
+        const resultadoSuno = await respuestaSuno.json();
+        const taskId = resultadoSuno?.data?.taskId || resultadoSuno?.taskId;
+
+        await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ estado: 'GENERANDO', factory_task_id: taskId })
+        });
+      }
     }
 
     return res.status(200).json({ recibido: true });
