@@ -13,6 +13,9 @@
 </head>
 <body>
 <h2>Prueba de pago con Mercado Pago</h2>
+<p>Pedido real a usar (id):</p>
+<input id="pedidoId" value="1">
+<br>
 <button id="btnCrear">Crear pedido de prueba (S/20)</button>
 <div id="resultado">Esperando...</div>
 <div id="enlace"></div>
@@ -25,11 +28,13 @@ document.getElementById('btnCrear').onclick = async () => {
   resultado.textContent = 'Pidiendo a Mercado Pago que genere el cobro...';
   enlace.innerHTML = '';
 
+  const pedidoId = document.getElementById('pedidoId').value;
+
   const resp = await fetch('/api/crear-pago', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      pedidoId: 'prueba-' + Date.now(),
+      pedidoId: pedidoId,
       paraQuien: 'Prueba'
     })
   });
