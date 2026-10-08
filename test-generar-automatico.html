@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba generación automática</title>
+<style>
+  body{font-family:sans-serif; max-width:480px; margin:2rem auto; padding:0 1rem;}
+  button{padding:12px 20px; font-size:16px; margin:10px 0;}
+  input{padding:10px; font-size:16px; width:100px;}
+  #resultado{white-space:pre-wrap; background:#f0f0f0; padding:10px; border-radius:8px; font-size:13px;}
+</style>
+</head>
+<body>
+<h2>Prueba: Supabase → sunoapi.org</h2>
+<p>Pedido a probar (id):</p>
+<input id="pedidoId" value="1">
+<br>
+<button id="btnProbar">Generar canción para este pedido</button>
+<div id="resultado">Esperando...</div>
+
+<script>
+document.getElementById('btnProbar').onclick = async () => {
+  const resultado = document.getElementById('resultado');
+  const pedidoId = document.getElementById('pedidoId').value;
+  resultado.textContent = 'Buscando el pedido y pidiendo la canción a sunoapi.org...';
+
+  const resp = await fetch('/api/test-generar-automatico', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pedidoId })
+  });
+  const data = await resp.json();
+  resultado.textContent = 'Respuesta:\n' + JSON.stringify(data, null, 2);
+};
+</script>
+</body>
+</html>
