@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba Mercado Pago</title>
+<style>
+  body{font-family:sans-serif; max-width:480px; margin:2rem auto; padding:0 1rem;}
+  button{padding:12px 20px; font-size:16px; margin:10px 0;}
+  #resultado{white-space:pre-wrap; background:#f0f0f0; padding:10px; border-radius:8px; font-size:13px;}
+  a.pagar{display:inline-block; margin-top:12px; padding:12px 20px; background:#00AAE4; color:#fff; text-decoration:none; border-radius:8px; font-weight:bold;}
+</style>
+</head>
+<body>
+<h2>Prueba de pago con Mercado Pago</h2>
+<button id="btnCrear">Crear pedido de prueba (S/20)</button>
+<div id="resultado">Esperando...</div>
+<div id="enlace"></div>
+
+<script>
+const resultado = document.getElementById('resultado');
+const enlace = document.getElementById('enlace');
+
+document.getElementById('btnCrear').onclick = async () => {
+  resultado.textContent = 'Pidiendo a Mercado Pago que genere el cobro...';
+  enlace.innerHTML = '';
+
+  const resp = await fetch('/api/crear-pago', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pedidoId: 'prueba-' + Date.now(),
+      paraQuien: 'Prueba'
+    })
+  });
+  const data = await resp.json();
+  resultado.textContent = 'Respuesta:\n' + JSON.stringify(data, null, 2);
+
+  if (data.init_point) {
+    enlace.innerHTML = `<a class="pagar" href="${data.init_point}" target="_blank">Ir a pagar (modo prueba)</a>`;
+  } else if (data.sandbox_init_point) {
+    enlace.innerHTML = `<a class="pagar" href="${data.sandbox_init_point}" target="_blank">Ir a pagar (modo prueba)</a>`;
+  }
+};
+</script>
+</body>
+</html>
