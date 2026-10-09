@@ -281,11 +281,35 @@ $('irGoogle').onclick = async () => {
     options: { redirectTo: window.location.href }
   });
 };
-$('irPagoMP').onclick = () => {
-  showScreen('screenWait', 2);
-  const nombre = $('paraQuien').value.trim();
-  $('nombreDedicado').textContent = nombre ? ('Para ' + nombre) : 'Tu canción';
-  setTimeout(() => showScreen('screen3', 3), 2500);
+$('irPagoMP').onclick = async () => {
+  const boton = $('irPagoMP');
+  const textoOriginal = boton.textContent;
+  const pedidoId = localStorage.getItem('cp_pedido_id');
+  const borrador = JSON.parse(localStorage.getItem('cp_pedido_borrador') || '{}');
+  if (!pedidoId) {
+    alert('No encontramos tu pedido. Vuelve a empezar, por favor.');
+    showScreen('screen1', 1);
+    return;
+  }
+  boton.disabled = true;
+  boton.textContent = 'Abriendo Mercado Pago...';
+  try {
+    const resp = await fetch('/api/crear-pago', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pedidoId: pedidoId, paraQuien: borrador.paraQuien || '' })
+    });
+    const data = await resp.json();
+    const enlace = data.init_point || data.sandbox_init_point;
+    if (!enlace) {
+      throw new Error(data.error || 'Mercado Pago no devolvió el enlace de pago');
+    }
+    window.location.href = enlace;
+  } catch (e) {
+    alert('No se pudo abrir el pago: ' + e.message);
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
 };
 $('reiniciar').onclick = () => {
   localStorage.removeItem('cp_pedido_en_progreso');
