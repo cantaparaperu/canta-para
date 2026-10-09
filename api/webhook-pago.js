@@ -6,7 +6,10 @@ export default async function handler(req, res) {
   const paymentId = req.body?.data?.id;
   const tipo = req.body?.type;
 
+  console.log('Webhook recibido. tipo:', tipo, 'paymentId:', paymentId);
+
   if (tipo !== 'payment' || !paymentId) {
+    console.log('Se ignoró: tipo o paymentId no válidos');
     return res.status(200).json({ recibido: true });
   }
 
@@ -17,6 +20,8 @@ export default async function handler(req, res) {
       }
     });
     const pago = await respuestaPago.json();
+
+    console.log('Estado del pago segun Mercado Pago:', pago.status, '- external_reference:', pago.external_reference);
 
     if (pago.status === 'approved') {
       const pedidoId = pago.external_reference;
@@ -31,7 +36,6 @@ export default async function handler(req, res) {
         body: JSON.stringify({ estado: 'PAGADO' })
       });
 
-      // Buscar el pedido para obtener sus datos
       const respuestaPedido = await fetch(
         `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=*`,
         {
@@ -43,6 +47,8 @@ export default async function handler(req, res) {
       );
       const filas = await respuestaPedido.json();
       const pedido = filas?.[0];
+
+      console.log('Pedido encontrado en Supabase:', pedido ? 'SI' : 'NO');
 
       if (pedido) {
         const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
@@ -79,6 +85,8 @@ export default async function handler(req, res) {
         });
 
         const resultadoSuno = await respuestaSuno.json();
+        console.log('Respuesta de sunoapi.org:', JSON.stringify(resultadoSuno));
+
         const taskId = resultadoSuno?.data?.taskId || resultadoSuno?.taskId;
 
         await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
@@ -95,6 +103,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ recibido: true });
   } catch (error) {
+    console.log('ERROR en el webhook:', error.message);
     return res.status(200).json({ recibido: true, error: error.message });
   }
 }
