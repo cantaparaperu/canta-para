@@ -6,11 +6,21 @@ export default async function handler(req, res) {
   const paymentId = req.body?.data?.id;
   const tipo = req.body?.type;
 
-  console.log('Webhook recibido. tipo:', tipo, 'paymentId:', paymentId);
-
   if (tipo !== 'payment' || !paymentId) {
-    console.log('Se ignoró: tipo o paymentId no válidos');
     return res.status(200).json({ recibido: true });
+  }
+
+  async function anotar(pedidoId, texto) {
+    if (!pedidoId) return;
+    await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ debug_info: texto })
+    });
   }
 
   try {
@@ -20,12 +30,11 @@ export default async function handler(req, res) {
       }
     });
     const pago = await respuestaPago.json();
+    const pedidoId = pago.external_reference;
 
-    console.log('Estado del pago segun Mercado Pago:', pago.status, '- external_reference:', pago.external_reference);
+    await anotar(pedidoId, `status: ${pago.status} | ext_ref: ${pedidoId} | paymentId: ${paymentId}`);
 
     if (pago.status === 'approved') {
-      const pedidoId = pago.external_reference;
-
       await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
         method: 'PATCH',
         headers: {
@@ -48,7 +57,7 @@ export default async function handler(req, res) {
       const filas = await respuestaPedido.json();
       const pedido = filas?.[0];
 
-      console.log('Pedido encontrado en Supabase:', pedido ? 'SI' : 'NO');
+      await anotar(pedidoId, `pedido encontrado: ${pedido ? 'SI' : 'NO'}`);
 
       if (pedido) {
         const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
@@ -85,9 +94,9 @@ export default async function handler(req, res) {
         });
 
         const resultadoSuno = await respuestaSuno.json();
-        console.log('Respuesta de sunoapi.org:', JSON.stringify(resultadoSuno));
-
         const taskId = resultadoSuno?.data?.taskId || resultadoSuno?.taskId;
+
+        await anotar(pedidoId, `suno respondio: ${JSON.stringify(resultadoSuno).slice(0, 300)}`);
 
         await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
           method: 'PATCH',
@@ -103,7 +112,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ recibido: true });
   } catch (error) {
-    console.log('ERROR en el webhook:', error.message);
     return res.status(200).json({ recibido: true, error: error.message });
   }
 }
