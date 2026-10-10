@@ -271,15 +271,37 @@ $('irPagar').onclick = () => {
     voz: $('vozM').classList.contains('selected') ? 'masculina' : 'femenina'
   };
   localStorage.setItem('cp_pedido_borrador', JSON.stringify(borrador));
+  // Pedido nuevo: borrar rastros del pedido anterior
+  localStorage.removeItem('cp_pedido_id');
+  localStorage.removeItem('cp_pedido_en_progreso');
   showScreen('screen2', 2);
 };
 
 $('irGoogle').onclick = async () => {
-  localStorage.setItem('cp_pedido_en_progreso', 'true');
-  await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href }
-  });
+  const boton = $('irGoogle');
+  if (boton.disabled) return;
+  boton.disabled = true;
+  try {
+    localStorage.setItem('cp_pedido_en_progreso', 'true');
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      // Ya inició sesión antes: crear el pedido directo, sin volver a Google
+      await crearPedido(session);
+      return;
+    }
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+    if (error) throw error;
+  } catch (e) {
+    alert('No se pudo continuar con Google: ' + e.message);
+  } finally {
+    boton.disabled = false;
+  }
 };
 $('irPagoMP').onclick = async () => {
   const boton = $('irPagoMP');
@@ -318,28 +340,37 @@ $('reiniciar').onclick = () => {
   showScreen('screen1', 1);
 };
 
+async function crearPedido(session){
+  const b = JSON.parse(localStorage.getItem('cp_pedido_borrador') || '{}');
+  if (!b.paraQuien) {
+    alert('No encontramos los datos de tu canción. Vuelve a escribirlos, por favor.');
+    showScreen('screen1', 1);
+    return;
+  }
+  const { data, error } = await supabaseClient.from('pedidos').insert({
+    user_id: session.user.id,
+    dedicado_a: b.paraQuien || '',
+    descripcion: b.modoLetra ? b.letra : b.descripcion,
+    voz: b.voz || 'masculina',
+    modo_letra: !!b.modoLetra,
+    precio: 20,
+    estado: 'PENDIENTE_PAGO'
+  }).select().single();
+  if (error) {
+    alert('No se pudo guardar tu pedido: ' + error.message);
+    showScreen('screen1', 1);
+    return;
+  }
+  localStorage.setItem('cp_pedido_id', data.id);
+  showScreen('screen2b', 2);
+}
+
 async function alVolverDeGoogle(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   const enProgreso = localStorage.getItem('cp_pedido_en_progreso');
   const yaGuardado = localStorage.getItem('cp_pedido_id');
   if (session && enProgreso === 'true' && !yaGuardado) {
-    const b = JSON.parse(localStorage.getItem('cp_pedido_borrador') || '{}');
-    const { data, error } = await supabaseClient.from('pedidos').insert({
-      user_id: session.user.id,
-      dedicado_a: b.paraQuien || '',
-      descripcion: b.modoLetra ? b.letra : b.descripcion,
-      voz: b.voz || 'masculina',
-      modo_letra: !!b.modoLetra,
-      precio: 20,
-      estado: 'PENDIENTE_PAGO'
-    }).select().single();
-    if (error) {
-      alert('No se pudo guardar tu pedido: ' + error.message);
-      showScreen('screen1', 1);
-      return;
-    }
-    localStorage.setItem('cp_pedido_id', data.id);
-    showScreen('screen2b', 2);
+    await crearPedido(session);
   }
 }
 alVolverDeGoogle();
