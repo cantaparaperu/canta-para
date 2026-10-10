@@ -73,6 +73,14 @@ async function anotar(pedidoId, texto) {
   }
 }
 
+// Instrucción para sunoapi: el nombre de la persona va SIEMPRE, y se cuida el largo máximo (500)
+function armarPrompt(pedido) {
+  const nombre = String(pedido.dedicado_a || '').trim().slice(0, 60);
+  const base = String(pedido.descripcion || 'Canción personalizada').trim();
+  const pre = nombre ? `Canción dedicada a ${nombre}; menciona el nombre "${nombre}" varias veces en la letra. ` : '';
+  return (pre + base).slice(0, 490);
+}
+
 async function pedirCancion(pedido) {
   const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
   const callBackUrl = 'https://cantapara.app/api/callback-suno';
@@ -92,7 +100,7 @@ async function pedirCancion(pedido) {
     : {
         customMode: false,
         instrumental: false,
-        prompt: pedido.descripcion || 'Canción personalizada',
+        prompt: armarPrompt(pedido),
         vocalGender,
         model: 'V6',
         callBackUrl
