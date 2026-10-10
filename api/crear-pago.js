@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       pending: 'https://cantapara.vercel.app'
     },
     auto_return: 'approved',
+    notification_url: 'https://cantapara.vercel.app/api/webhook-pago',
     external_reference: pedidoId || ''
   };
 
