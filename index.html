@@ -201,7 +201,7 @@
     <div class="waiting">
       <div class="glow-ring"><span class="note">🎵</span></div>
       <h1 style="font-size:17px;">Tu pedido fue recibido</h1>
-      <p class="sub">Estamos creando tus 2 versiones.<br>Esto puede tardar unos minutos.</p>
+      <p class="sub" id="esperaMensaje">Estamos creando tus 2 versiones.<br>Esto puede tardar unos minutos.</p>
       <div class="info-card" style="text-align:left;">Puedes cerrar esta página y volver más tarde. Cuando regreses, entra con el mismo Google que usaste para tu pedido.</div>
     </div>
   </div>
@@ -215,17 +215,17 @@
 
     <div class="track">
       <div class="track-top">
-        <div class="play-dot"><svg viewBox="0 0 12 12"><polygon points="1,0 12,6 1,12"/></svg></div>
-        <div><p class="track-name">Versión 1</p><p class="track-meta">Pop romántico · 3:12</p></div>
+        <div><p class="track-name">Versión 1</p><p class="track-meta">Lista para escuchar y descargar</p></div>
       </div>
-      <button class="btn-dl">↓ Descargar versión 1</button>
+      <audio id="audio1" controls preload="metadata" style="width:100%; margin:8px 0;"></audio>
+      <button class="btn-dl" id="dl1">↓ Descargar versión 1</button>
     </div>
     <div class="track">
       <div class="track-top">
-        <div class="play-dot"><svg viewBox="0 0 12 12"><polygon points="1,0 12,6 1,12"/></svg></div>
-        <div><p class="track-name">Versión 2</p><p class="track-meta">Balada emotiva · 3:08</p></div>
+        <div><p class="track-name">Versión 2</p><p class="track-meta">Lista para escuchar y descargar</p></div>
       </div>
-      <button class="btn-dl">↓ Descargar versión 2</button>
+      <audio id="audio2" controls preload="metadata" style="width:100%; margin:8px 0;"></audio>
+      <button class="btn-dl" id="dl2">↓ Descargar versión 2</button>
     </div>
 
     <p class="gift-line">Descárgalas ambas — son tuyas.</p>
@@ -274,6 +274,8 @@ $('irPagar').onclick = () => {
   // Pedido nuevo: borrar rastros del pedido anterior
   localStorage.removeItem('cp_pedido_id');
   localStorage.removeItem('cp_pedido_en_progreso');
+  localStorage.removeItem('cp_pedido_pagando');
+  detenerVigilancia();
   showScreen('screen2', 2);
 };
 
@@ -326,6 +328,7 @@ $('irPagoMP').onclick = async () => {
     if (!enlace) {
       throw new Error(data.error || 'Mercado Pago no devolvió el enlace de pago');
     }
+    localStorage.setItem('cp_pedido_pagando', String(pedidoId));
     window.location.href = enlace;
   } catch (e) {
     alert('No se pudo abrir el pago: ' + e.message);
@@ -334,9 +337,11 @@ $('irPagoMP').onclick = async () => {
   }
 };
 $('reiniciar').onclick = () => {
+  detenerVigilancia();
   localStorage.removeItem('cp_pedido_en_progreso');
   localStorage.removeItem('cp_pedido_id');
   localStorage.removeItem('cp_pedido_borrador');
+  localStorage.removeItem('cp_pedido_pagando');
   showScreen('screen1', 1);
 };
 
@@ -373,7 +378,113 @@ async function alVolverDeGoogle(){
     await crearPedido(session);
   }
 }
+
+// ---------- Vigilar el pedido después de pagar ----------
+let vigiliaActiva = 0;
+function detenerVigilancia(){ vigiliaActiva++; }
+
+function mostrarCanciones(r){
+  $('nombreDedicado').textContent = r.dedicado_a ? ('Para ' + r.dedicado_a) : 'Tu canción';
+  $('audio1').src = r.audio_1_url;
+  $('audio2').src = r.audio_2_url;
+  $('dl1').onclick = () => descargarAudio(r.audio_1_url, 'cancion-version-1.mp3');
+  $('dl2').onclick = () => descargarAudio(r.audio_2_url, 'cancion-version-2.mp3');
+  showScreen('screen3', 3);
+}
+
+async function descargarAudio(url, nombre){
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('descarga no disponible');
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } catch (e) {
+    // Si el navegador no deja descargar directo, abrir el audio en otra pestaña
+    window.open(url, '_blank');
+  }
+}
+
+async function vigilarPedido(pedidoId){
+  const miVigilia = ++vigiliaActiva;
+  showScreen('screenWait', 2);
+  $('esperaMensaje').innerHTML = 'Estamos creando tus 2 versiones.<br>Esto puede tardar unos minutos.';
+
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+
+  while (miVigilia === vigiliaActiva) {
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        showScreen('screen1', 1);
+        alert('Inicia sesión con el mismo Google de tu pedido para ver tus canciones.');
+        return;
+      }
+      const resp = await fetch('/api/estado-pedido?id=' + encodeURIComponent(pedidoId), {
+        headers: { 'Authorization': 'Bearer ' + session.access_token }
+      });
+      if (resp.status === 404) {
+        localStorage.removeItem('cp_pedido_pagando');
+        showScreen('screen1', 1);
+        return;
+      }
+      const r = await resp.json();
+
+      if (r.estado === 'LISTO' && r.audio_1_url && r.audio_2_url) {
+        mostrarCanciones(r);
+        return;
+      }
+      if (r.estado === 'EXPIRADO') {
+        localStorage.removeItem('cp_pedido_pagando');
+        $('esperaMensaje').innerHTML = 'El plazo para descargar tus canciones terminó.<br><a href="' + window.location.pathname + '" style="color:inherit; text-decoration:underline;">Crear una canción nueva</a>';
+        return;
+      }
+      if (r.estado === 'ERROR_GENERACION') {
+        $('esperaMensaje').innerHTML = 'Estamos terminando tu pedido.<br>Tu pago está seguro, no tienes que pagar de nuevo.';
+      } else if (r.estado === 'PENDIENTE_PAGO') {
+        $('esperaMensaje').innerHTML = 'Estamos confirmando tu pago.<br>Esto toma unos segundos.';
+      } else {
+        $('esperaMensaje').innerHTML = 'Estamos creando tus 2 versiones.<br>Esto puede tardar unos minutos.';
+      }
+    } catch (e) {
+      // sin internet o error puntual: seguir intentando
+    }
+    await esperar(6000);
+  }
+}
+
+// Al abrir la página: ¿volvemos de pagar, o hay un pedido pagado en curso?
+async function retomarPedidoPagado(){
+  const params = new URLSearchParams(window.location.search);
+  const refMP = params.get('external_reference');
+  const estadoMP = params.get('status') || params.get('collection_status');
+
+  if (refMP && /^\d+$/.test(refMP)) {
+    window.history.replaceState({}, '', window.location.pathname);
+    if (estadoMP === 'failure' || estadoMP === 'rejected') {
+      localStorage.setItem('cp_pedido_id', refMP);
+      showScreen('screen2b', 2);
+      alert('El pago no se completó. Puedes intentarlo de nuevo.');
+      return;
+    }
+    localStorage.setItem('cp_pedido_pagando', refMP);
+    await vigilarPedido(refMP);
+    return;
+  }
+
+  const pendiente = localStorage.getItem('cp_pedido_pagando');
+  if (pendiente) {
+    await vigilarPedido(pendiente);
+  }
+}
+
 alVolverDeGoogle();
+retomarPedidoPagado();
 </script>
 </body>
 </html>

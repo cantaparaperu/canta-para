@@ -1,3 +1,77 @@
+// Webhook de Mercado Pago: confirma el pago y pide la canción UNA sola vez.
+// Si algo falla responde 500 para que Mercado Pago reintente el aviso solo.
+
+function cabecerasSupabase(extra = {}) {
+  return {
+    'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+    'Content-Type': 'application/json',
+    ...extra
+  };
+}
+
+async function actualizarPedido(pedidoId, campos, filtroExtra = '') {
+  const r = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(pedidoId)}${filtroExtra}`,
+    {
+      method: 'PATCH',
+      headers: cabecerasSupabase({ 'Prefer': 'return=representation' }),
+      body: JSON.stringify(campos)
+    }
+  );
+  if (!r.ok) return [];
+  const filas = await r.json();
+  return Array.isArray(filas) ? filas : [];
+}
+
+async function anotar(pedidoId, texto) {
+  if (!pedidoId) return;
+  try {
+    await actualizarPedido(pedidoId, { debug_info: String(texto).slice(0, 900) });
+  } catch (e) {
+    // anotar nunca debe romper el proceso
+  }
+}
+
+async function pedirCancion(pedido) {
+  const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
+  const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
+
+  const cuerpo = pedido.modo_letra
+    ? {
+        customMode: true,
+        instrumental: false,
+        title: pedido.dedicado_a || 'Mi canción',
+        style: 'Pop',
+        lyrics: pedido.letra || pedido.descripcion || 'Canción personalizada',
+        prompt: pedido.descripcion || 'Canción personalizada',
+        vocalGender,
+        model: 'V6',
+        callBackUrl
+      }
+    : {
+        customMode: false,
+        instrumental: false,
+        prompt: pedido.descripcion || 'Canción personalizada',
+        vocalGender,
+        model: 'V6',
+        callBackUrl
+      };
+
+  const respuesta = await fetch('https://api.sunoapi.org/api/v1/generate', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUNO_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(cuerpo),
+    signal: AbortSignal.timeout(8000)
+  });
+  const resultado = await respuesta.json();
+  const taskId = resultado?.data?.taskId || resultado?.taskId;
+  return { resultado, taskId, ok: respuesta.ok && resultado?.code === 200 && !!taskId };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(200).json({ recibido: true });
@@ -10,108 +84,103 @@ export default async function handler(req, res) {
     return res.status(200).json({ recibido: true });
   }
 
-  async function anotar(pedidoId, texto) {
-    if (!pedidoId) return;
-    await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ debug_info: texto })
-    });
-  }
+  let pedidoId = null;
+  let reclamado = false;
 
   try {
+    // 1) Consultar el pago real a Mercado Pago (no confiamos solo en el aviso)
     const respuestaPago = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`
-      }
+      headers: { 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+      signal: AbortSignal.timeout(8000)
     });
+    if (!respuestaPago.ok) {
+      return res.status(500).json({ error: 'No se pudo consultar el pago, reintentar' });
+    }
     const pago = await respuestaPago.json();
-    const pedidoId = pago.external_reference;
+    pedidoId = pago.external_reference;
+
+    if (!pedidoId) {
+      return res.status(200).json({ recibido: true, aviso: 'pago sin pedido' });
+    }
 
     await anotar(pedidoId, `status: ${pago.status} | ext_ref: ${pedidoId} | paymentId: ${paymentId}`);
 
-    if (pago.status === 'approved') {
-      await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ estado: 'PAGADO' })
+    if (pago.status !== 'approved') {
+      return res.status(200).json({ recibido: true });
+    }
+
+    // 2) Buscar el pedido y comprobar que el monto pagado alcanza
+    const respuestaPedido = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(pedidoId)}&select=*`,
+      { headers: cabecerasSupabase() }
+    );
+    const filas = await respuestaPedido.json();
+    const pedido = Array.isArray(filas) ? filas[0] : null;
+
+    if (!pedido) {
+      await anotar(pedidoId, `pedido NO encontrado | paymentId: ${paymentId}`);
+      return res.status(200).json({ recibido: true });
+    }
+
+    if (Number(pago.transaction_amount) < Number(pedido.precio)) {
+      await anotar(pedidoId, `monto insuficiente: pagó ${pago.transaction_amount}, precio ${pedido.precio} | paymentId: ${paymentId}`);
+      return res.status(200).json({ recibido: true });
+    }
+
+    // 3) Reclamar el pedido de forma atómica: solo UN aviso puede pasar de
+    //    PENDIENTE_PAGO (o ERROR_GENERACION, para reintentar) a PAGADO.
+    const filasReclamadas = await actualizarPedido(
+      pedidoId,
+      { estado: 'PAGADO', mercado_pago_id: String(paymentId) },
+      '&estado=in.(PENDIENTE_PAGO,ERROR_GENERACION)'
+    );
+
+    if (filasReclamadas.length === 0) {
+      // Otro aviso ya lo procesó: no pedimos la canción dos veces
+      return res.status(200).json({ recibido: true, duplicado: true });
+    }
+
+    reclamado = true;
+
+    // 4) Pedir la canción
+    let intento;
+    try {
+      intento = await pedirCancion(pedido);
+    } catch (e) {
+      intento = { ok: false, resultado: { error: e.message } };
+    }
+
+    if (!intento.ok) {
+      await actualizarPedido(pedidoId, {
+        estado: 'ERROR_GENERACION',
+        debug_info: `suno fallo: ${JSON.stringify(intento.resultado).slice(0, 600)}`
       });
+      // 500 => Mercado Pago volverá a avisar y se reintentará solo
+      return res.status(500).json({ error: 'No se pudo pedir la canción, reintentar' });
+    }
 
-      const respuestaPedido = await fetch(
-        `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=*`,
-        {
-          headers: {
-            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-          }
-        }
-      );
-      const filas = await respuestaPedido.json();
-      const pedido = filas?.[0];
-
-      await anotar(pedidoId, `pedido encontrado: ${pedido ? 'SI' : 'NO'}`);
-
-      if (pedido) {
-        const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
-        const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
-
-        const cuerpo = pedido.modo_letra
-          ? {
-              customMode: true,
-              instrumental: false,
-              title: pedido.dedicado_a || 'Mi canción',
-              style: 'Pop',
-              lyrics: pedido.letra || pedido.descripcion || 'Canción personalizada',
-              prompt: pedido.descripcion || 'Canción personalizada',
-              vocalGender,
-              model: 'V6',
-              callBackUrl
-            }
-          : {
-              customMode: false,
-              instrumental: false,
-              prompt: pedido.descripcion || 'Canción personalizada',
-              vocalGender,
-              model: 'V6',
-              callBackUrl
-            };
-
-        const respuestaSuno = await fetch('https://api.sunoapi.org/api/v1/generate', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.SUNO_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(cuerpo)
-        });
-
-        const resultadoSuno = await respuestaSuno.json();
-        const taskId = resultadoSuno?.data?.taskId || resultadoSuno?.taskId;
-
-        await anotar(pedidoId, `suno respondio: ${JSON.stringify(resultadoSuno).slice(0, 300)}`);
-
-        await fetch(`${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ estado: 'GENERANDO', factory_task_id: taskId })
-        });
-      }
+    const guardado = await actualizarPedido(pedidoId, {
+      estado: 'GENERANDO',
+      factory_task_id: intento.taskId,
+      debug_info: `suno respondio: ${JSON.stringify(intento.resultado).slice(0, 300)}`
+    });
+    if (guardado.length === 0) {
+      throw new Error('No se pudo guardar el estado GENERANDO');
     }
 
     return res.status(200).json({ recibido: true });
   } catch (error) {
-    return res.status(200).json({ recibido: true, error: error.message });
+    if (pedidoId) {
+      if (reclamado) {
+        // Quedó a medias: dejarlo reintentable en el próximo aviso
+        await actualizarPedido(pedidoId, {
+          estado: 'ERROR_GENERACION',
+          debug_info: `error webhook: ${error.message}`.slice(0, 900)
+        }, '&estado=eq.PAGADO');
+      } else {
+        await anotar(pedidoId, `error webhook: ${error.message}`);
+      }
+    }
+    return res.status(500).json({ error: error.message });
   }
 }
