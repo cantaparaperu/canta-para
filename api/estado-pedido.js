@@ -2,13 +2,31 @@
 // Si la canción está en proceso, le pregunta a sunoapi.org y, cuando termina,
 // guarda los enlaces de audio y pasa el pedido a LISTO.
 
-const HORAS_DISPONIBLE = 24;
+const HORAS_DISPONIBLE = 48; // margen para quien cerró la página y vuelve después
 const ESTADOS_FALLO_SUNO = [
   'CREATE_TASK_FAILED',
   'GENERATE_AUDIO_FAILED',
   'CALLBACK_EXCEPTION',
   'SENSITIVE_WORD_ERROR'
 ];
+
+// ---- Avisos al dueño por Telegram (si no están configurados, no hace nada) ----
+async function avisarDueno(texto) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chat = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chat) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: String(texto).slice(0, 3500) }),
+      signal: AbortSignal.timeout(5000)
+    });
+  } catch (e) {
+    // un aviso que falla nunca debe romper el proceso del cliente
+  }
+}
+
 
 function cabecerasSupabase(extra = {}) {
   return {
@@ -201,7 +219,10 @@ export default async function handler(req, res) {
               },
               '&estado=eq.GENERANDO'
             );
-            if (fallo[0]) pedido = fallo[0];
+            if (fallo[0]) {
+              pedido = fallo[0];
+              await avisarDueno(`🚨 Canta Para: el pedido #${pedido.id} (ya pagado) falló en sunoapi.org y el reintento también. Estado: ERROR_GENERACION. Detalle: ${String(pedido.debug_info || '').slice(0, 300)}`);
+            }
           }
         } else {
           const fallo = await actualizarPedido(
@@ -209,7 +230,10 @@ export default async function handler(req, res) {
             { estado: 'ERROR_GENERACION', debug_info: `reintento agotado: ${estadoSuno}` },
             '&estado=eq.GENERANDO'
           );
-          if (fallo[0]) pedido = fallo[0];
+          if (fallo[0]) {
+            pedido = fallo[0];
+            await avisarDueno(`🚨 Canta Para: el pedido #${pedido.id} (ya pagado) falló dos veces en sunoapi.org (${estadoSuno}). Estado: ERROR_GENERACION. Hay que revisarlo a mano.`);
+          }
         }
       }
     }

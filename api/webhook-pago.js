@@ -1,6 +1,46 @@
 // Webhook de Mercado Pago: confirma el pago y pide la canción UNA sola vez.
 // Si algo falla responde 500 para que Mercado Pago reintente el aviso solo.
 
+// ---- Avisos al dueño por Telegram (si no están configurados, no hace nada) ----
+const UMBRAL_CREDITOS = 120; // 12 créditos por pedido => unos 10 pedidos de margen
+
+async function avisarDueno(texto) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chat = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chat) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: String(texto).slice(0, 3500) }),
+      signal: AbortSignal.timeout(5000)
+    });
+  } catch (e) {
+    // un aviso que falla nunca debe romper el proceso del cliente
+  }
+}
+
+async function creditosSuno() {
+  try {
+    const r = await fetch('https://api.sunoapi.org/api/v1/generate/credit', {
+      headers: { 'Authorization': `Bearer ${process.env.SUNO_API_KEY}` },
+      signal: AbortSignal.timeout(5000)
+    });
+    const d = await r.json();
+    const valor = typeof d?.data === 'number' ? d.data : (d?.data?.credits ?? d?.data?.credit);
+    return Number.isFinite(Number(valor)) ? Number(valor) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function avisarSiSaldoBajo() {
+  const creditos = await creditosSuno();
+  if (creditos !== null && creditos < UMBRAL_CREDITOS) {
+    await avisarDueno(`⚠️ Canta Para: saldo bajo en sunoapi.org. Quedan ${creditos} créditos (unos ${Math.floor(creditos / 12)} pedidos). Recarga pronto para que ningún cliente se quede sin su canción.`);
+  }
+}
+
 function cabecerasSupabase(extra = {}) {
   return {
     'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -124,6 +164,7 @@ export default async function handler(req, res) {
 
     if (Number(pago.transaction_amount) < Number(pedido.precio)) {
       await anotar(pedidoId, `monto insuficiente: pagó ${pago.transaction_amount}, precio ${pedido.precio} | paymentId: ${paymentId}`);
+      await avisarDueno(`⚠️ Canta Para: el pedido #${pedidoId} pagó ${pago.transaction_amount} y el precio era ${pedido.precio}. No se generó la canción. Revísalo.`);
       return res.status(200).json({ recibido: true });
     }
 
@@ -155,6 +196,7 @@ export default async function handler(req, res) {
         estado: 'ERROR_GENERACION',
         debug_info: `suno fallo: ${JSON.stringify(intento.resultado).slice(0, 600)}`
       });
+      await avisarDueno(`🚨 Canta Para: el pedido #${pedidoId} ya está PAGADO pero sunoapi.org no aceptó crear la canción. Se reintentará solo cuando Mercado Pago vuelva a avisar. Detalle: ${JSON.stringify(intento.resultado).slice(0, 300)}`);
       // 500 => Mercado Pago volverá a avisar y se reintentará solo
       return res.status(500).json({ error: 'No se pudo pedir la canción, reintentar' });
     }
@@ -168,6 +210,9 @@ export default async function handler(req, res) {
       throw new Error('No se pudo guardar el estado GENERANDO');
     }
 
+    // Después de cada canción pedida, revisar que no se acabe el saldo
+    await avisarSiSaldoBajo();
+
     return res.status(200).json({ recibido: true });
   } catch (error) {
     if (pedidoId) {
@@ -177,6 +222,7 @@ export default async function handler(req, res) {
           estado: 'ERROR_GENERACION',
           debug_info: `error webhook: ${error.message}`.slice(0, 900)
         }, '&estado=eq.PAGADO');
+        await avisarDueno(`🚨 Canta Para: el pedido #${pedidoId} quedó a medias tras el pago (${error.message}). Quedó en ERROR_GENERACION y se reintentará con el próximo aviso de Mercado Pago.`);
       } else {
         await anotar(pedidoId, `error webhook: ${error.message}`);
       }
