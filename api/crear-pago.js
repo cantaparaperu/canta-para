@@ -1,3 +1,6 @@
+// Precio de la canción en soles (debe coincidir con PRECIO_SOLES de index.html)
+const PRECIO_SOLES = 25;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -12,7 +15,7 @@ export default async function handler(req, res) {
         description: paraQuien ? `Para: ${paraQuien}` : 'Canción personalizada',
         quantity: 1,
         currency_id: 'PEN',
-        unit_price: 20
+        unit_price: PRECIO_SOLES
       }
     ],
     back_urls: {

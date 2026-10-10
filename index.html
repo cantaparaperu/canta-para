@@ -245,7 +245,7 @@
 
     <span class="toggle-link" id="toggleLetra">Subir mi letra de canción (Opcional)</span>
 
-    <div class="order-row"><span>2 versiones · pago único</span><span class="price">S/ 20</span></div>
+    <div class="order-row"><span>2 versiones · pago único</span><span class="price">S/ 25</span></div>
     <button class="btn-main" id="irPagar">Crear mi canción →</button>
   </div>
 
@@ -268,7 +268,7 @@
     <div class="mp-card">
       <div class="mp-row"><span style="font-size:13px; font-weight:600;">Ya casi es tuya</span></div>
       <p class="mp-label" style="margin:0 0 10px;">2 versiones</p>
-      <div class="mp-row"><span class="mp-label">Precio</span><span class="price">S/ 20</span></div>
+      <div class="mp-row"><span class="mp-label">Precio</span><span class="price">S/ 25</span></div>
     </div>
     <button class="btn-mp" id="irPagoMP">Pagar con Mercado Pago</button>
     <p class="mp-note">Volverás a esta página automáticamente después del pago.</p>
@@ -361,6 +361,8 @@ const SUPABASE_URL = 'https://xhylofpcnnvlbyttucwa.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_WPc9cvNtiQjYtcAVBPaBHg__mPRqaiZ';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Precio de la canción (el cobro real lo decide el servidor: api/crear-pago.js)
+const PRECIO_SOLES = 25;
 const $ = id => document.getElementById(id);
 let modoLetra = false;
 
@@ -507,7 +509,7 @@ async function crearPedido(session){
     descripcion: b.modoLetra ? b.letra : b.descripcion,
     voz: b.voz || 'masculina',
     modo_letra: !!b.modoLetra,
-    precio: 20,
+    precio: PRECIO_SOLES,
     estado: 'PENDIENTE_PAGO'
   }).select().single();
   if (error) {
