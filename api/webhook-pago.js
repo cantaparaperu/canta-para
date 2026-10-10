@@ -77,8 +77,14 @@ async function anotar(pedidoId, texto) {
 function armarPrompt(pedido) {
   const nombre = String(pedido.dedicado_a || '').trim().slice(0, 60);
   const base = String(pedido.descripcion || 'Canción personalizada').trim();
-  const pre = nombre ? `Canción dedicada a ${nombre}; menciona su nombre entre 3 y 4 veces en total en toda la canción, de forma natural, sin pasar de 4. ` : '';
-  return (pre + base).slice(0, 490);
+  // En modo normal sunoapi ignora vocalGender: la voz se pide escrita en la instrucción
+  const voz = pedido.voz === 'femenina'
+    ? 'Cantada por una voz femenina (female vocals).'
+    : 'Cantada por una voz masculina (male vocals).';
+  const dedicada = nombre
+    ? ` Dedicada a ${nombre} (quien recibe la canción, no quien canta); menciona su nombre entre 3 y 4 veces en total en toda la canción, de forma natural, sin pasar de 4.`
+    : '';
+  return (voz + dedicada + ' ' + base).slice(0, 900);
 }
 
 async function pedirCancion(pedido) {
@@ -90,7 +96,8 @@ async function pedirCancion(pedido) {
         customMode: true,
         instrumental: false,
         title: pedido.dedicado_a || 'Mi canción',
-        style: 'Pop',
+        style: pedido.voz === 'femenina' ? 'Pop, female vocals' : 'Pop, male vocals',
+        negativeTags: pedido.voz === 'femenina' ? 'Male Vocals' : 'Female Vocals',
         lyrics: pedido.letra || pedido.descripcion || 'Canción personalizada',
         prompt: pedido.descripcion || 'Canción personalizada',
         vocalGender,
@@ -101,7 +108,6 @@ async function pedirCancion(pedido) {
         customMode: false,
         instrumental: false,
         prompt: armarPrompt(pedido),
-        vocalGender,
         model: 'V6',
         callBackUrl
       };
