@@ -227,11 +227,12 @@
 
     <p class="ex-quote">"La próxima puede ser para alguien importante para ti."</p>
     <label>¿Para quién es?</label>
-    <input type="text" id="paraQuien" placeholder="Ej. Mi mamá, Rosa">
+    <input type="text" id="paraQuien" maxlength="40" placeholder="Ej. Mi mamá, Rosa">
 
     <div id="bloqueDescripcion">
       <label>¿Cómo quieres que sea tu canción?</label>
-      <textarea id="descripcion" rows="3" placeholder="Ej. Balada romántica, quiero decirle que es el amor de mi vida"></textarea>
+      <textarea id="descripcion" rows="3" maxlength="330" placeholder="Ej. Balada romántica, quiero decirle que es el amor de mi vida"></textarea>
+      <p id="contadorDesc" style="font-size:11px; color:var(--text3); text-align:right; margin:-10px 0 14px;">0 / 330</p>
     </div>
     <div id="bloqueLetra" class="hidden">
       <label>Pega tu letra completa</label>
@@ -441,6 +442,7 @@ $('toggleLetra').onclick = () => {
   $('toggleLetra').textContent = 'Subir mi letra de canción (Opcional)';
 };
 $('letra').oninput = () => { $('contadorLetra').textContent = $('letra').value.length + ' / 1500'; };
+$('descripcion').oninput = () => { $('contadorDesc').textContent = $('descripcion').value.length + ' / 330'; };
 $('vozM').onclick = () => { $('vozM').classList.add('selected'); $('vozF').classList.remove('selected'); };
 $('vozF').onclick = () => { $('vozF').classList.add('selected'); $('vozM').classList.remove('selected'); };
 
