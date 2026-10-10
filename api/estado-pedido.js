@@ -55,7 +55,7 @@ async function actualizarPedido(pedidoId, campos, filtroExtra = '') {
 function armarPrompt(pedido) {
   const nombre = String(pedido.dedicado_a || '').trim().slice(0, 60);
   const base = String(pedido.descripcion || 'Canción personalizada').trim();
-  const pre = nombre ? `Canción dedicada a ${nombre}; menciona su nombre solo un par de veces, de forma natural, sin repetirlo en exceso. ` : '';
+  const pre = nombre ? `Canción dedicada a ${nombre}; menciona su nombre entre 3 y 4 veces en total en toda la canción, de forma natural, sin pasar de 4. ` : '';
   return (pre + base).slice(0, 490);
 }
 
