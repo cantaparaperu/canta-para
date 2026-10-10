@@ -110,6 +110,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
+  // Prueba de avisos: abrir /api/mantenimiento?probar=1 manda un mensaje de prueba a Telegram
+  if (req.query && req.query.probar) {
+    const llego = await avisarDueno('✅ Canta Para: los avisos por Telegram funcionan.');
+    return res.status(200).json({ telegram: llego ? 'enviado' : 'no se pudo enviar (revisa el token y el número de chat)' });
+  }
+
   const resumen = { vencidos: 0, atascados: 0, conError: 0, creditos: null, avisos: [] };
 
   try {
