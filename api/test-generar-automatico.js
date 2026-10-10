@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     // 2. Pedirle a sunoapi.org que genere la canción
     const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
-    const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
+    const callBackUrl = 'https://cantapara.app/api/callback-suno';
 
     const cuerpo = pedido.modo_letra
       ? {

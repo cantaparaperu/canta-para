@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   const { paraQuien, descripcion, letra, modoLetra, voz } = req.body;
   const vocalGender = voz === 'femenina' ? 'f' : 'm';
-  const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
+  const callBackUrl = 'https://cantapara.app/api/callback-suno';
 
   const cuerpo = modoLetra
     ? {

@@ -53,7 +53,7 @@ async function actualizarPedido(pedidoId, campos, filtroExtra = '') {
 
 async function pedirCancion(pedido) {
   const vocalGender = pedido.voz === 'femenina' ? 'f' : 'm';
-  const callBackUrl = 'https://cantapara.vercel.app/api/callback-suno';
+  const callBackUrl = 'https://cantapara.app/api/callback-suno';
 
   const cuerpo = pedido.modo_letra
     ? {

@@ -19,12 +19,12 @@ export default async function handler(req, res) {
       }
     ],
     back_urls: {
-      success: 'https://cantapara.vercel.app',
-      failure: 'https://cantapara.vercel.app',
-      pending: 'https://cantapara.vercel.app'
+      success: 'https://cantapara.app',
+      failure: 'https://cantapara.app',
+      pending: 'https://cantapara.app'
     },
     auto_return: 'approved',
-    notification_url: 'https://cantapara.vercel.app/api/webhook-pago',
+    notification_url: 'https://cantapara.app/api/webhook-pago',
     external_reference: pedidoId || ''
   };
 
