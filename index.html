@@ -365,6 +365,7 @@
     </div>
 
     <a class="reset" id="reiniciar" style="cursor:pointer;">Crear otra canción</a>
+    <p class="contacto" style="opacity:.9; font-size:12px; margin:14px 0 0; color:var(--text2);">¿Ya pagaste y no ves tu canción? <a href="#" id="recuperarCancion" style="text-decoration:underline; color:var(--text);">Recupérala aquí</a></p>
     <p class="contacto">Reclamos y sugerencias: <a href="mailto:cantaparaperu@gmail.com">cantaparaperu@gmail.com</a></p>
     <p class="contacto" style="margin-top:0;"><a href="/privacidad.html">Política de privacidad</a> · <a href="/terminos.html">Términos y condiciones</a></p>
   </div>
@@ -593,10 +594,65 @@ async function crearPedido(session){
   showScreen('screen2b', 2);
 }
 
+// ---------- Recuperar una canción ya pagada (por si el cliente volvió en otro navegador) ----------
+async function recuperarCancion(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    if (esNavegadorInterno) { mostrarAyudaNavegador(); return; }
+    localStorage.setItem('cp_recuperar', 'true');
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+    if (error) {
+      localStorage.removeItem('cp_recuperar');
+      mostrarAviso('No se pudo continuar con Google: ' + error.message);
+    }
+    return;
+  }
+  localStorage.removeItem('cp_recuperar');
+  const { data, error } = await supabaseClient
+    .from('pedidos')
+    .select('id,estado,created_at')
+    .in('estado', ['PAGADO', 'GENERANDO', 'LISTO', 'ERROR_GENERACION', 'EXPIRADO'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) {
+    mostrarAviso('No pudimos buscar tu pedido ahora. Inténtalo de nuevo en un momento o escríbenos a cantaparaperu@gmail.com');
+    return;
+  }
+  if (!data || data.length === 0) {
+    $('modalMsg').textContent = 'No encontramos un pedido pagado con esta cuenta de Google.\n\nSi pagaste con otra cuenta, toca "Usar otra cuenta". Si necesitas ayuda, escríbenos a cantaparaperu@gmail.com';
+    const cont = $('modalBtns');
+    cont.innerHTML = '';
+    const otra = document.createElement('button');
+    otra.className = 'btn-main'; otra.textContent = 'Usar otra cuenta';
+    otra.onclick = async () => { cerrarModal(); await supabaseClient.auth.signOut(); recuperarCancion(); };
+    cont.appendChild(otra);
+    const cerrar = document.createElement('button');
+    cerrar.className = 'btn-main'; cerrar.textContent = 'Cerrar';
+    cerrar.onclick = cerrarModal;
+    cont.appendChild(cerrar);
+    $('modalOverlay').classList.remove('hidden');
+    return;
+  }
+  localStorage.setItem('cp_pedido_pagando', String(data[0].id));
+  showScreen('screenWait', 2);
+  vigilarPedido(String(data[0].id));
+}
+$('recuperarCancion').onclick = (e) => { e.preventDefault(); recuperarCancion(); };
+
 async function alVolverDeGoogle(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   const enProgreso = localStorage.getItem('cp_pedido_en_progreso');
   const yaGuardado = localStorage.getItem('cp_pedido_id');
+  if (session && localStorage.getItem('cp_recuperar') === 'true') {
+    await recuperarCancion();
+    return;
+  }
   if (session && enProgreso === 'true' && !yaGuardado) {
     await crearPedido(session);
   }
@@ -767,7 +823,7 @@ async function vigilarPedido(pedidoId){
       if (!session) {
         detenerVigilancia();
         showScreen('screen1', 1);
-        mostrarAviso('Inicia sesión con el mismo Google de tu pedido para ver tus canciones.');
+        mostrarAviso('Para ver tu canción, toca "Recupérala aquí" (abajo) e inicia sesión con el mismo Google de tu pedido.');
         return;
       }
       const resp = await fetch('/api/estado-pedido?id=' + encodeURIComponent(pedidoId), {
@@ -866,7 +922,7 @@ $('btnGuardarApp').onclick = async () => {
 (function(){
   // Volviendo de Google: tapar la pantalla de inicio para que no parpadee
   const vuelveDeGoogle = /[?&]code=/.test(window.location.search) || /access_token=/.test(window.location.hash);
-  if (vuelveDeGoogle && localStorage.getItem('cp_pedido_en_progreso') === 'true' && !localStorage.getItem('cp_pedido_id')) {
+  if (vuelveDeGoogle && (localStorage.getItem('cp_recuperar') === 'true' || (localStorage.getItem('cp_pedido_en_progreso') === 'true' && !localStorage.getItem('cp_pedido_id')))) {
     $('cargandoGoogle').classList.remove('hidden');
     setTimeout(() => $('cargandoGoogle').classList.add('hidden'), 10000); // seguro: nunca queda trabado
   }
