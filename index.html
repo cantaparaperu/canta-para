@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Canta Para</title>
+<meta name="description" content="Convierte lo que sientes en una canción personalizada para esa persona especial. Cuéntanos tu historia y recibe 2 versiones listas en minutos.">
+<meta name="theme-color" content="#0A0E1A">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Canta Para">
+<meta property="og:title" content="Canta Para — Tu historia, convertida en canción">
+<meta property="og:description" content="Una canción personalizada para esa persona especial. Recibe 2 versiones listas en minutos.">
+<meta property="og:url" content="https://cantapara.app">
+<meta property="og:image" content="https://cantapara.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root{
     --bg:#0A0E1A; --surface:#131A2E; --surface2:#1B2440;
@@ -731,7 +744,7 @@ async function vigilarPedido(pedidoId){
       if (r.estado === 'ERROR_GENERACION') {
         mensajeEnEspera(
           'Estamos terminando tu pedido',
-          'Tu pago está seguro, no tienes que pagar de nuevo.<br>Esta página se actualizará sola.',
+          'Tu pago está seguro, no tienes que pagar de nuevo.<br>Esta página se actualizará sola.<br><br>Si pasan más de 30 minutos, escríbenos a <b>cantaparaperu@gmail.com</b> y menciona tu pedido <b>#' + pedidoId + '</b>.',
           false
         );
       }
