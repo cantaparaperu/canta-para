@@ -196,6 +196,10 @@
 </head>
 <body>
 <div class="phone">
+  <div id="avisoNavegador" class="hidden" style="background:var(--surface2); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:10px; font-size:12px; color:var(--text2); line-height:1.5; text-align:center;">
+    Para iniciar sesión y pagar, ábrelo en tu navegador (Chrome o Safari).
+    <a href="#" id="avisoNavegadorBtn" style="color:var(--text); font-weight:600; text-decoration:underline; margin-left:4px;">Ver cómo</a>
+  </div>
   <div class="brand"><span class="brand-dot"></span><span>Canta Para</span></div>
   <div class="steps">
     <div class="step-dot active" id="dot1"></div>
@@ -493,6 +497,49 @@ $('irPagar').onclick = () => {
   showScreen('screen2', 2);
 };
 
+// ---------- Navegador interno (Facebook, Instagram, TikTok...) ----------
+// Google no deja iniciar sesión dentro de esos navegadores, así que guiamos al cliente.
+const UA = navigator.userAgent || '';
+const esNavegadorInterno = /FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|TikTok|musical_ly|BytedanceWebview|Snapchat|Line\/|; wv\)/i.test(UA);
+const esAndroid = /Android/i.test(UA);
+
+function copiarEnlace(){
+  const url = 'https://cantapara.app';
+  const ok = () => mostrarAviso('Enlace copiado. Abre Chrome o Safari, pégalo y entra a cantapara.app');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(ok).catch(() => mostrarAviso('Copia este enlace y ábrelo en Chrome o Safari: ' + url));
+  } else {
+    mostrarAviso('Copia este enlace y ábrelo en Chrome o Safari: ' + url);
+  }
+}
+
+function mostrarAyudaNavegador(){
+  $('modalMsg').textContent = 'Google no permite iniciar sesión desde este navegador.\n\nÁbrelo en Chrome o Safari para continuar con tu pedido:' +
+    (esAndroid ? '' : '\n\nToca los tres puntos (⋯) o el icono de compartir y elige "Abrir en Safari" o "Abrir en el navegador".');
+  const cont = $('modalBtns');
+  cont.innerHTML = '';
+  if (esAndroid) {
+    const abrir = document.createElement('button');
+    abrir.className = 'btn-main'; abrir.textContent = 'Abrir en Chrome';
+    abrir.onclick = () => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; };
+    cont.appendChild(abrir);
+  }
+  const copiar = document.createElement('button');
+  copiar.className = 'btn-main'; copiar.textContent = 'Copiar enlace';
+  copiar.onclick = copiarEnlace;
+  cont.appendChild(copiar);
+  const cerrar = document.createElement('button');
+  cerrar.className = 'btn-main'; cerrar.textContent = 'Cerrar';
+  cerrar.onclick = cerrarModal;
+  cont.appendChild(cerrar);
+  $('modalOverlay').classList.remove('hidden');
+}
+
+if (esNavegadorInterno) {
+  $('avisoNavegador').classList.remove('hidden');
+  $('avisoNavegadorBtn').onclick = (e) => { e.preventDefault(); mostrarAyudaNavegador(); };
+}
+
 $('irGoogle').onclick = async () => {
   const boton = $('irGoogle');
   if (boton.disabled) return;
@@ -505,6 +552,7 @@ $('irGoogle').onclick = async () => {
       await crearPedido(session);
       return;
     }
+    if (esNavegadorInterno) { mostrarAyudaNavegador(); return; }
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
