@@ -364,6 +364,10 @@
     <p class="contacto">Reclamos y sugerencias: <a href="mailto:cantaparaperu@gmail.com">cantaparaperu@gmail.com</a></p>
   </div>
 
+  <div id="cargandoGoogle" class="hidden" style="position:fixed; inset:0; background:var(--bg); z-index:20; display:flex; align-items:center; justify-content:center; padding:1.5rem; text-align:center;">
+    <p style="font-size:14px; color:var(--text2); line-height:1.6; margin:0;">Preparando tu pedido…</p>
+  </div>
+
   <div id="modalOverlay" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; padding:1.5rem; z-index:10;">
     <div style="background:var(--surface2); border:1px solid var(--line); border-radius:16px; padding:1.25rem; max-width:320px; width:100%;">
       <p id="modalMsg" style="font-size:13px; color:var(--text); line-height:1.6; margin:0 0 1.1rem; white-space:pre-line;"></p>
@@ -460,6 +464,7 @@ $('vozM').onclick = () => { $('vozM').classList.add('selected'); $('vozF').class
 $('vozF').onclick = () => { $('vozF').classList.add('selected'); $('vozM').classList.remove('selected'); };
 
 function showScreen(id, dot){
+  $('cargandoGoogle').classList.add('hidden');
   ['screen1','screen2','screen2b','screenWait','screen3'].forEach(s => $(s).classList.add('hidden'));
   $(id).classList.remove('hidden');
   [1,2,3].forEach(n => $('dot'+n).classList.remove('active'));
@@ -810,6 +815,12 @@ $('btnGuardarApp').onclick = async () => {
 // ---------- Arranque ----------
 // Si volvemos de pagar (o hay un pedido pagado en curso), mostrar la espera de inmediato
 (function(){
+  // Volviendo de Google: tapar la pantalla de inicio para que no parpadee
+  const vuelveDeGoogle = /[?&]code=/.test(window.location.search) || /access_token=/.test(window.location.hash);
+  if (vuelveDeGoogle && localStorage.getItem('cp_pedido_en_progreso') === 'true' && !localStorage.getItem('cp_pedido_id')) {
+    $('cargandoGoogle').classList.remove('hidden');
+    setTimeout(() => $('cargandoGoogle').classList.add('hidden'), 10000); // seguro: nunca queda trabado
+  }
   const p = new URLSearchParams(window.location.search);
   if ((p.get('external_reference') && /^\d+$/.test(p.get('external_reference'))) || localStorage.getItem('cp_pedido_pagando')) {
     showScreen('screenWait', 2);
