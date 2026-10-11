@@ -370,6 +370,16 @@
     <p class="contacto" style="margin-top:0;"><a href="/privacidad.html">Política de privacidad</a> · <a href="/terminos.html">Términos y condiciones</a></p>
   </div>
 
+  <div id="puertaNavegador" class="hidden" style="position:fixed; inset:0; background:var(--bg); z-index:25; display:flex; align-items:center; justify-content:center; padding:1.5rem; text-align:center;">
+    <div style="max-width:320px; width:100%;">
+      <div class="brand" style="justify-content:center; margin-bottom:18px;"><span class="brand-dot"></span><span>Canta Para</span></div>
+      <p style="font-size:16px; color:var(--text); line-height:1.5; margin:0 0 8px; font-weight:600;">Un paso rápido antes de empezar</p>
+      <p id="puertaTexto" style="font-size:13px; color:var(--text2); line-height:1.6; margin:0 0 18px;">Para iniciar sesión y pagar, ábrelo en tu navegador (Chrome o Safari). Así no pierdes nada de tu pedido.</p>
+      <div id="puertaBtns" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <a href="#" id="puertaSeguir" style="display:inline-block; margin-top:16px; font-size:12px; color:var(--text3); text-decoration:underline;">Continuar aquí de todos modos</a>
+    </div>
+  </div>
+
   <div id="cargandoGoogle" class="hidden" style="position:fixed; inset:0; background:var(--bg); z-index:20; display:flex; align-items:center; justify-content:center; padding:1.5rem; text-align:center;">
     <p style="font-size:14px; color:var(--text2); line-height:1.6; margin:0;">Preparando tu pedido…</p>
   </div>
@@ -540,6 +550,38 @@ if (esNavegadorInterno) {
   $('avisoNavegador').classList.remove('hidden');
   $('avisoNavegadorBtn').onclick = (e) => { e.preventDefault(); mostrarAyudaNavegador(); };
 }
+
+// Al entrar desde un anuncio (navegador interno): pedir el cambio de navegador de inmediato,
+// antes de que el cliente llene el formulario. Si vuelve de pagar, no se le estorba.
+(function(){
+  if (!esNavegadorInterno) return;
+  const q = new URLSearchParams(window.location.search);
+  const volviendo = q.get('external_reference') || q.get('code') || /access_token=/.test(window.location.hash) ||
+    localStorage.getItem('cp_pedido_pagando') || localStorage.getItem('cp_pedido_en_progreso') === 'true';
+  if (volviendo) return;
+  const cont = $('puertaBtns');
+  if (esAndroid) {
+    const abrir = document.createElement('button');
+    abrir.className = 'btn-main'; abrir.textContent = 'Abrir en Chrome';
+    abrir.onclick = () => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; };
+    cont.appendChild(abrir);
+  } else {
+    $('puertaTexto').innerHTML = 'Para iniciar sesión y pagar, ábrelo en Safari: toca los tres puntos (⋯) o el icono de compartir y elige <b>"Abrir en Safari"</b>. Así no pierdes nada de tu pedido.';
+  }
+  const copiar = document.createElement('button');
+  copiar.className = 'btn-main'; copiar.textContent = 'Copiar enlace';
+  copiar.onclick = copiarEnlace;
+  cont.appendChild(copiar);
+  $('puertaSeguir').onclick = (e) => { e.preventDefault(); $('puertaNavegador').classList.add('hidden'); };
+  $('puertaNavegador').classList.remove('hidden');
+  // En Android intentamos abrir Chrome solos, una sola vez
+  try {
+    if (esAndroid && !sessionStorage.getItem('cp_intent')) {
+      sessionStorage.setItem('cp_intent', '1');
+      setTimeout(() => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; }, 400);
+    }
+  } catch (e) {}
+})();
 
 $('irGoogle').onclick = async () => {
   const boton = $('irGoogle');
