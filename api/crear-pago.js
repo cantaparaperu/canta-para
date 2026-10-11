@@ -24,6 +24,10 @@ export default async function handler(req, res) {
       pending: 'https://cantapara.app'
     },
     auto_return: 'approved',
+    // Sin pagos en efectivo/cajero: solo tarjeta, Yape y dinero en cuenta (pago inmediato)
+    payment_methods: {
+      excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }]
+    },
     notification_url: 'https://cantapara.app/api/webhook-pago',
     external_reference: pedidoId || ''
   };
