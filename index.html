@@ -565,6 +565,7 @@ if (esNavegadorInterno) {
     abrir.className = 'btn-main'; abrir.textContent = 'Abrir en Chrome';
     abrir.onclick = () => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; };
     cont.appendChild(abrir);
+    $('puertaTexto').innerHTML = 'Para iniciar sesión y pagar, ábrelo en tu navegador. Toca <b>Abrir en Chrome</b>.<br><br>Si no se abre, toca los tres puntos <b>(⋯)</b> arriba a la derecha y elige <b>"Abrir en el navegador"</b>.';
   } else {
     $('puertaTexto').innerHTML = 'Para iniciar sesión y pagar, ábrelo en Safari: toca los tres puntos (⋯) o el icono de compartir y elige <b>"Abrir en Safari"</b>. Así no pierdes nada de tu pedido.';
   }
