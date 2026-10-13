@@ -1,5 +1,5 @@
 // Precio de la canción en soles (debe coincidir con PRECIO_SOLES de index.html)
-const PRECIO_SOLES = 25;
+const PRECIO_SOLES = 29;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
