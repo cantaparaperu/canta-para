@@ -6,9 +6,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { pedidoId, paraQuien } = req.body;
+  const { pedidoId, paraQuien, correo, nombre } = req.body || {};
 
-  const preferencia = {
+  const preferenciaBase = {
     items: [
       {
         title: 'Canción personalizada - Canta Para',
@@ -32,7 +32,21 @@ export default async function handler(req, res) {
     external_reference: pedidoId || ''
   };
 
-  try {
+  // Versión con más datos para el antifraude (id, categoría, comprador, nombre en el estado de cuenta).
+  // Si Mercado Pago no la acepta por algún motivo, se usa la versión básica que ya funcionaba.
+  const nombrePartes = String(nombre || '').trim().split(/\s+/);
+  const payer = {};
+  if (typeof correo === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) payer.email = correo;
+  if (nombrePartes[0]) payer.name = nombrePartes[0];
+  if (nombrePartes.length > 1) payer.surname = nombrePartes.slice(1).join(' ');
+  const preferenciaMejorada = {
+    ...preferenciaBase,
+    items: [{ ...preferenciaBase.items[0], id: 'cancion-personalizada', category_id: 'services' }],
+    statement_descriptor: 'CANTAPARA',
+    ...(Object.keys(payer).length ? { payer } : {})
+  };
+
+  async function crear(preferencia) {
     const respuesta = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
@@ -41,8 +55,15 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(preferencia)
     });
-
     const resultado = await respuesta.json();
+    return { respuesta, resultado };
+  }
+
+  try {
+    let { respuesta, resultado } = await crear(preferenciaMejorada);
+    if (!respuesta.ok) {
+      ({ respuesta, resultado } = await crear(preferenciaBase));
+    }
 
     if (!respuesta.ok) {
       return res.status(respuesta.status).json({ error: 'Mercado Pago rechazó la solicitud', detalle: resultado });

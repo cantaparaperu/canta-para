@@ -743,10 +743,20 @@ $('irPagoMP').onclick = async () => {
   boton.disabled = true;
   boton.textContent = 'Abriendo Mercado Pago...';
   try {
+    // Datos del comprador (ayudan al antifraude de Mercado Pago a reconocerlo)
+    let correo = '', nombreComprador = '';
+    try {
+      const { data: ses } = await supabaseClient.auth.getSession();
+      const u = ses && ses.session && ses.session.user;
+      if (u) {
+        correo = u.email || '';
+        nombreComprador = (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || '';
+      }
+    } catch (e) {}
     const resp = await fetch('/api/crear-pago', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pedidoId: pedidoId, paraQuien: borrador.paraQuien || '' })
+      body: JSON.stringify({ pedidoId: pedidoId, paraQuien: borrador.paraQuien || '', correo: correo, nombre: nombreComprador })
     });
     const data = await resp.json();
     const enlace = data.init_point || data.sandbox_init_point;
