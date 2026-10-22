@@ -157,7 +157,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ recibido: true, aviso: 'pago sin pedido' });
     }
 
-    await anotar(pedidoId, `status: ${pago.status} | ext_ref: ${pedidoId} | paymentId: ${paymentId}`);
+    await anotar(pedidoId, `status: ${pago.status} (${pago.status_detail || "sin detalle"}) | método: ${pago.payment_method_id || "?"} | ext_ref: ${pedidoId} | paymentId: ${paymentId}`);
 
     if (pago.status !== 'approved') {
       return res.status(200).json({ recibido: true });
