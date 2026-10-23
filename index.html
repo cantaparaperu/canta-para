@@ -892,8 +892,20 @@ async function descargarAudio(url, nombre){
 let vigiliaActiva = 0;
 function detenerVigilancia(){ vigiliaActiva++; clearInterval(intervaloEspera); }
 
+// Si el pago no se completó (rechazado, cerrado, etc.), no dejar al cliente atrapado en la espera
+let pedidoVigilado = null;
+function volverAPagar(){
+  detenerVigilancia();
+  if (pedidoVigilado) localStorage.setItem('cp_pedido_id', String(pedidoVigilado));
+  localStorage.removeItem('cp_pedido_pagando');
+  showScreen('screen2b', 2);
+}
+function empezarDeNuevo(){ $('reiniciar').onclick(); }
+
 async function vigilarPedido(pedidoId){
   const miVigilia = ++vigiliaActiva;
+  pedidoVigilado = pedidoId;
+  let primeraSinPago = 0, avisoSinPago = false;
   mostrarEspera();
   const esperar = ms => new Promise(r => setTimeout(r, ms));
 
@@ -918,6 +930,25 @@ async function vigilarPedido(pedidoId){
       }
       const r = await resp.json();
       if (['PAGADO', 'GENERANDO', 'LISTO', 'ERROR_GENERACION'].includes(r.estado)) registrarCompra(pedidoId);
+
+      if (r.estado === 'PENDIENTE_PAGO') {
+        if (!primeraSinPago) primeraSinPago = Date.now();
+        if (!avisoSinPago && Date.now() - primeraSinPago > 30000) {
+          avisoSinPago = true;
+          mensajeEnEspera(
+            'Todavía no vemos tu pago',
+            'Si ya pagaste, espera un momento: esta página se actualizará sola.<br>Si el pago fue rechazado o no lo terminaste, puedes intentarlo otra vez.<br><br>' +
+            '<button class="btn-mp" onclick="volverAPagar()">Intentar pagar de nuevo</button><br><br>' +
+            '<a href="#" onclick="empezarDeNuevo(); return false;" style="color:inherit; text-decoration:underline;">Empezar un pedido nuevo</a>',
+            true
+          );
+        }
+      } else if (avisoSinPago) {
+        avisoSinPago = false; primeraSinPago = 0;
+        mostrarEspera();
+      } else {
+        primeraSinPago = 0;
+      }
 
       if (r.estado === 'LISTO' && r.audio_1_url && r.audio_2_url) {
         completarEsperaFicticia(() => { if (miVigilia === vigiliaActiva) mostrarCanciones(r); });
