@@ -161,6 +161,14 @@ export default async function handler(req, res) {
       await avisarDueno(`🚨 Canta Para: ${conError.length} pedido(s) pagados siguen en ERROR_GENERACION sin canción: ${conError.map(p => '#' + p.id).join(', ')}. Hay clientes esperando.`);
     }
 
+    // 3b) Cobros de Culqi a medias: un cobro dura segundos, así que si a esta hora
+    //     queda algún pedido en COBRANDO, no se supo si Culqi cobró. Hay que revisarlo a mano.
+    const cobrando = await consultarPedidos('estado=eq.COBRANDO&select=id');
+    resumen.cobrando = cobrando.length;
+    if (cobrando.length > 0) {
+      await avisarDueno(`🚨 Canta Para: ${cobrando.length} pedido(s) quedaron en COBRANDO sin confirmar: ${cobrando.map(p => '#' + p.id).join(', ')}. Revisa en el panel de Culqi si se cobró; si se cobró, genera la canción a mano.`);
+    }
+
     // 4) Saldo de sunoapi.org
     const creditos = await creditosSuno();
     resumen.creditos = creditos;
