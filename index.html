@@ -797,7 +797,7 @@ async function pagarConCulqi() {
           paymentMethods: { tarjeta: true, yape: CULQI_YAPE },
           paymentMethodsSort: CULQI_YAPE ? ['tarjeta', 'yape'] : ['tarjeta']
         },
-        appearance: { theme: 'default', menuType: 'sidebar', buttonCardPayText: 'Pagar S/ ' + PRECIO_SOLES }
+        appearance: { theme: 'default', menuType: 'sidebar', buttonCardPayText: 'Pagar' }
       };
       culqiCheckout = new CulqiCheckout(cfg.publicKey, config);
       culqiCheckout.culqi = async () => {
