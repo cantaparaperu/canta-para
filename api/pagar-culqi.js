@@ -208,7 +208,7 @@ export default async function handler(req, res) {
     }
 
     // 3) Pedido que ya se cobró con Culqi pero la canción falló: reintentar la canción SIN cobrar
-    if (pedido.estado === 'ERROR_GENERACION' && String(pedido.mercado_pago_id || '').startsWith('culqi:')) {
+    if (pedido.estado === 'ERROR_GENERACION' && String(pedido.mercado_pago_id || '').startsWith('culqi:chr_') && String(pedido.debug_info || '').startsWith('suno ')) {
       const reclamado = await actualizarPedido(pedido.id, { estado: 'PAGADO' }, '&estado=eq.ERROR_GENERACION');
       if (reclamado.length === 0) {
         return res.status(200).json({ estado: 'GENERANDO', yaPagado: true });
