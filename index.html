@@ -203,6 +203,11 @@
   .pie{min-height:100dvh; display:flex; flex-direction:column; margin:0 -1.4rem; padding:0 1.4rem 1.5rem;}
   .pie-promo{flex:1 1 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem 0 1.5rem; min-height:40dvh;}
   .pie-promo img{max-width:100%; height:auto; margin:0 auto; max-height:46dvh; border-radius:16px; display:block; object-fit:contain;}
+  .ficha{width:100%; margin-top:14px; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 16px;}
+  .ficha h2{font-size:16px; margin:0 0 4px; font-weight:600;}
+  .ficha p{font-size:13px; line-height:1.5; color:var(--text2); margin:0 0 10px;}
+  .ficha ul{margin:0 0 12px; padding:0 0 0 18px; font-size:13px; color:var(--text);} .ficha li{margin:2px 0;}
+  .ficha .ficha-precio{font-size:22px; font-weight:700; color:var(--text); margin:0 0 2px;} .ficha .ficha-precio small{font-size:12px; font-weight:400; color:var(--text2);}
   .pie-promo-marca{display:flex; align-items:center; gap:9px; font-weight:600; font-size:15px; margin-bottom:8px;}
   .pie-promo-texto{font-size:13px; color:var(--text2); margin:0;}
   .pie-info{flex:0 0 auto;}
@@ -379,6 +384,18 @@ fbq('track','PageView');
   <footer id="pie" class="pie">
     <div class="pie-promo" id="piePromo">
       <a href="#principal" id="promoLink" aria-label="Crear mi canción" style="display:block; width:100%; cursor:pointer; -webkit-tap-highlight-color:transparent;"><img src="/promo.webp" width="900" height="900" alt="Una canción que nace de ti. Escribe su nombre y cuéntanos lo que sientes. En solo 2 minutos." loading="lazy"></a>
+      <div class="ficha" id="ficha">
+        <h2>Canción personalizada</h2>
+        <p class="ficha-precio">S/ 29 <small>· pago único, sin suscripción</small></p>
+        <p>Una canción hecha para esa persona especial, a partir de su nombre y de lo que tú nos cuentas. Ideal para cumpleaños, aniversarios, declaraciones de amor o para dar las gracias.</p>
+        <ul>
+          <li>2 versiones distintas de tu canción</li>
+          <li>Lista en pocos minutos después de pagar</li>
+          <li>Escúchala y descárgala en la misma página (disponible 48 horas)</li>
+          <li>Pago seguro con tarjeta, dentro de la misma página</li>
+        </ul>
+        <button class="btn-main" type="button" id="fichaComprar">Crear mi canción →</button>
+      </div>
     </div>
     <div class="pie-info">
     <div class="follow-panel">
@@ -410,6 +427,7 @@ fbq('track','PageView');
       e.preventDefault();
       window.scrollTo({top:0, behavior:'smooth'});
     });
+    document.getElementById('fichaComprar').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
   </script>
 
   <div id="puertaNavegador" class="hidden" style="position:fixed; inset:0; background:var(--bg); z-index:25; display:flex; align-items:center; justify-content:center; padding:1.5rem; text-align:center;">
