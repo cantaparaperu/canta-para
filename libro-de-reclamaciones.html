@@ -72,9 +72,21 @@
   <h2>3. Detalle de la reclamación o queja</h2>
   <label for="tipo">¿Qué quieres registrar?</label>
   <select id="tipo">
-    <option value="RECLAMO">Reclamo — no estoy conforme con el servicio comprado</option>
-    <option value="QUEJA">Queja — no estoy conforme con la atención, sin relación al servicio</option>
+    <option value="RECLAMO">Reclamo — tuve un problema con el servicio que compré</option>
+    <option value="QUEJA">Queja — tuve un problema con la atención recibida</option>
   </select>
+  <label for="motivo">¿Cuál fue el problema?</label>
+  <select id="motivo">
+    <option value="">Elige una opción…</option>
+    <option>No se generó mi canción</option>
+    <option>Pagué y no recibí mi pedido</option>
+    <option>Me cobraron más de una vez</option>
+    <option>No pude escuchar o descargar mi canción</option>
+    <option>El servicio no coincide con lo ofrecido</option>
+    <option>Problema con la atención</option>
+    <option>Otro motivo</option>
+  </select>
+  <p class="caja" style="margin:.7rem 0 0;"><small>Recuerda: como cada canción se crea a pedido, <strong>no hay devolución por diferencias de gusto</strong> con el resultado. Sí atendemos los casos en que no recibiste tu canción o te cobraron de más. Mira la <a href="/devoluciones.html">política de cambios y devoluciones</a>.</small></p>
   <label for="detalle">Cuéntanos qué pasó</label>
   <textarea id="detalle" maxlength="2000"></textarea>
   <label for="pedido_consumidor">¿Qué solución esperas?</label>
@@ -107,7 +119,7 @@
     e.preventDefault();
     var err = $('error'); err.textContent = '';
     var datos = {
-      tipo: $('tipo').value, nombre: $('nombre').value, documento_tipo: $('documento_tipo').value,
+      tipo: $('tipo').value, motivo: $('motivo').value, nombre: $('nombre').value, documento_tipo: $('documento_tipo').value,
       documento_numero: $('documento_numero').value, domicilio: $('domicilio').value, telefono: $('telefono').value,
       correo: $('correo').value, menor_edad: $('menor_edad').checked, representante: $('representante').value,
       descripcion_servicio: $('descripcion_servicio').value, monto: parseFloat($('monto').value) || 0,
@@ -127,6 +139,7 @@
           ['Contacto', datos.telefono + ' · ' + datos.correo],
           ['Servicio', datos.descripcion_servicio + ' — S/ ' + datos.monto.toFixed(2)],
           ['Tipo', datos.tipo === 'QUEJA' ? 'Queja' : 'Reclamo'],
+          ['Motivo', datos.motivo],
           ['Detalle', datos.detalle],
           ['Solución esperada', datos.pedido_consumidor],
           ['Proveedor', 'Josue S. Mendoza R. — RUC 10427810556 — Urb. Las Brisas Mz. Y Lt. 15, Nuevo Chimbote']

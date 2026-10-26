@@ -55,6 +55,7 @@ export default async function handler(req, res) {
       descripcion_servicio: limpiar(b.descripcion_servicio, 300),
       monto: Math.max(0, Math.min(1000, Number(b.monto) || 0)),
       pedido_ref: limpiar(b.pedido_ref, 40) || null,
+      motivo: limpiar(b.motivo, 80),
       detalle: limpiar(b.detalle, 2000),
       pedido_consumidor: limpiar(b.pedido_consumidor, 1000)
     };
@@ -70,6 +71,8 @@ export default async function handler(req, res) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fila.correo)) return res.status(400).json({ error: 'Revisa tu correo electrónico.' });
     if (fila.menor_edad && !fila.representante) return res.status(400).json({ error: 'Escribe el nombre de tu padre, madre o tutor.' });
     if (fila.descripcion_servicio.length < 3) return res.status(400).json({ error: 'Cuéntanos qué servicio compraste.' });
+    const MOTIVOS = ['No se generó mi canción', 'Pagué y no recibí mi pedido', 'Me cobraron más de una vez', 'No pude escuchar o descargar mi canción', 'El servicio no coincide con lo ofrecido', 'Problema con la atención', 'Otro motivo'];
+    if (!MOTIVOS.includes(fila.motivo)) return res.status(400).json({ error: 'Elige cuál fue el problema.' });
     if (fila.detalle.length < 10) return res.status(400).json({ error: 'Cuéntanos con más detalle qué pasó.' });
     if (fila.pedido_consumidor.length < 5) return res.status(400).json({ error: 'Cuéntanos qué solución esperas.' });
     if (b.acepta !== true) return res.status(400).json({ error: 'Debes aceptar la declaración para enviar la hoja.' });
@@ -88,7 +91,7 @@ export default async function handler(req, res) {
     const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/reclamos`, {
       method: 'POST',
       headers: cabeceras({ 'Prefer': 'return=representation' }),
-      body: JSON.stringify(fila),
+      body: JSON.stringify({ ...fila, motivo: undefined, detalle: `[Motivo: ${fila.motivo}] ${fila.detalle}` }),
       signal: AbortSignal.timeout(8000)
     });
     if (!r.ok) {
