@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Libro de Reclamaciones - Canta Para</title>
+<style>
+  body{font-family:-apple-system,sans-serif; max-width:640px; margin:1.5rem auto; padding:0 1.2rem 3rem; color:#222; line-height:1.55;}
+  h1{font-size:22px; margin-bottom:.2rem;} h2{font-size:15px; margin:1.6rem 0 .6rem; padding-top:.8rem; border-top:1px solid #ddd;}
+  p, li, label, small{font-size:14px;}
+  .caja{background:#f6f6f9; border:1px solid #e2e2ea; border-radius:10px; padding:.8rem 1rem; font-size:14px;}
+  label{display:block; margin:.7rem 0 .25rem; font-weight:600;}
+  input[type=text], input[type=email], input[type=tel], input[type=number], select, textarea{width:100%; font:inherit; font-size:15px; padding:.6rem .7rem; border:1px solid #bbb; border-radius:8px; background:#fff; box-sizing:border-box;}
+  textarea{min-height:90px;}
+  .fila{display:flex; gap:.6rem;} .fila > div{flex:1;}
+  .check{display:flex; gap:.5rem; align-items:flex-start; font-weight:400; margin:.8rem 0;}
+  .check input{margin-top:.25rem;}
+  button{font:inherit; font-size:16px; font-weight:600; color:#fff; background:#7c3aed; border:0; border-radius:10px; padding:.85rem 1.2rem; width:100%; margin-top:1rem; cursor:pointer;}
+  button[disabled]{opacity:.6;}
+  .error{color:#b00020; font-size:14px; margin-top:.8rem; min-height:1.2em;}
+  .oculto{display:none !important;}
+  .trampa{position:absolute; left:-9999px; height:0; overflow:hidden;}
+  table{width:100%; border-collapse:collapse; font-size:14px;} td{padding:.35rem .4rem; border-bottom:1px solid #e5e5ee; vertical-align:top;} td:first-child{width:38%; font-weight:600;}
+  a{color:#5b21b6;}
+  @media print{ button, .no-imprimir{display:none !important;} body{margin:0;} }
+</style>
+</head>
+<body>
+<p class="no-imprimir"><a href="/">← Volver a Canta Para</a></p>
+<h1>Libro de Reclamaciones</h1>
+<p>Conforme al Código de Protección y Defensa del Consumidor (Ley N.º 29571) y sus normas sobre el Libro de Reclamaciones.</p>
+
+<div class="caja">
+  <strong>Proveedor</strong><br>
+  Josue S. Mendoza R. — Canta Para (cantapara.app)<br>
+  RUC 10427810556<br>
+  Urb. Las Brisas Mz. Y Lt. 15, Nuevo Chimbote, Santa, Áncash, Perú<br>
+  Correo: cantaparaperu@gmail.com · Tel./WhatsApp: 904 438 567
+</div>
+
+<div id="vistaFormulario">
+<form id="formulario" novalidate>
+  <h2>1. Identificación del consumidor</h2>
+  <label for="nombre">Nombre completo</label>
+  <input type="text" id="nombre" autocomplete="name" maxlength="120">
+  <div class="fila">
+    <div><label for="documento_tipo">Documento</label>
+      <select id="documento_tipo"><option value="DNI">DNI</option><option value="CE">Carné de extranjería</option><option value="PASAPORTE">Pasaporte</option></select></div>
+    <div><label for="documento_numero">Número</label>
+      <input type="text" id="documento_numero" inputmode="numeric" maxlength="20"></div>
+  </div>
+  <label for="domicilio">Domicilio</label>
+  <input type="text" id="domicilio" autocomplete="street-address" maxlength="200">
+  <div class="fila">
+    <div><label for="telefono">Teléfono</label><input type="tel" id="telefono" autocomplete="tel" maxlength="20"></div>
+    <div><label for="correo">Correo electrónico</label><input type="email" id="correo" autocomplete="email" maxlength="120"></div>
+  </div>
+  <label class="check"><input type="checkbox" id="menor_edad"> Soy menor de edad y completo esta hoja con mi padre, madre o tutor.</label>
+  <div id="bloqueRepresentante" class="oculto">
+    <label for="representante">Nombre del padre, madre o tutor</label>
+    <input type="text" id="representante" maxlength="120">
+  </div>
+
+  <h2>2. Identificación del servicio contratado</h2>
+  <label for="descripcion_servicio">Servicio</label>
+  <input type="text" id="descripcion_servicio" value="Canción personalizada (2 versiones)" maxlength="300">
+  <div class="fila">
+    <div><label for="monto">Monto reclamado (S/)</label><input type="number" id="monto" value="29" min="0" max="1000" step="0.01" inputmode="decimal"></div>
+    <div><label for="pedido_ref">N.º de pedido (si lo tienes)</label><input type="text" id="pedido_ref" maxlength="40"></div>
+  </div>
+
+  <h2>3. Detalle de la reclamación o queja</h2>
+  <label for="tipo">¿Qué quieres registrar?</label>
+  <select id="tipo">
+    <option value="RECLAMO">Reclamo — no estoy conforme con el servicio comprado</option>
+    <option value="QUEJA">Queja — no estoy conforme con la atención, sin relación al servicio</option>
+  </select>
+  <label for="detalle">Cuéntanos qué pasó</label>
+  <textarea id="detalle" maxlength="2000"></textarea>
+  <label for="pedido_consumidor">¿Qué solución esperas?</label>
+  <textarea id="pedido_consumidor" maxlength="1000"></textarea>
+
+  <div class="trampa" aria-hidden="true"><label>No llenar <input type="text" id="sitio_web" tabindex="-1" autocomplete="off"></label></div>
+
+  <label class="check"><input type="checkbox" id="acepta"> Declaro que los datos son ciertos y que la hoja registra mi reclamo o queja.</label>
+  <p><small>Reclamo: disconformidad con el servicio. Queja: disconformidad con la atención. La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI. El proveedor responderá en un plazo no mayor a 15 días hábiles.</small></p>
+
+  <button type="submit" id="enviar">Enviar hoja de reclamación</button>
+  <div class="error" id="error" role="alert"></div>
+</form>
+</div>
+
+<div id="vistaListo" class="oculto">
+  <h2 style="border-top:0; margin-top:1rem;">Hoja registrada</h2>
+  <p>Tu hoja quedó registrada. Guarda o imprime esta constancia (puedes elegir "Guardar como PDF").</p>
+  <table id="constancia"></table>
+  <p>Te responderemos por escrito al correo que indicaste en un plazo máximo de 15 días hábiles.</p>
+  <button type="button" id="imprimir">Imprimir o guardar constancia</button>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  $('menor_edad').addEventListener('change', function(){ $('bloqueRepresentante').classList.toggle('oculto', !this.checked); });
+
+  $('formulario').addEventListener('submit', function(e){
+    e.preventDefault();
+    var err = $('error'); err.textContent = '';
+    var datos = {
+      tipo: $('tipo').value, nombre: $('nombre').value, documento_tipo: $('documento_tipo').value,
+      documento_numero: $('documento_numero').value, domicilio: $('domicilio').value, telefono: $('telefono').value,
+      correo: $('correo').value, menor_edad: $('menor_edad').checked, representante: $('representante').value,
+      descripcion_servicio: $('descripcion_servicio').value, monto: parseFloat($('monto').value) || 0,
+      pedido_ref: $('pedido_ref').value, detalle: $('detalle').value, pedido_consumidor: $('pedido_consumidor').value,
+      acepta: $('acepta').checked, sitio_web: $('sitio_web').value
+    };
+    var btn = $('enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+    fetch('/api/reclamo', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(datos) })
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
+      .then(function(x){
+        if (!x.ok) { err.textContent = (x.j && x.j.error) || 'No pudimos registrar tu hoja. Inténtalo de nuevo.'; btn.disabled = false; btn.textContent = 'Enviar hoja de reclamación'; return; }
+        var filas = [
+          ['N.º de hoja', x.j.numero],
+          ['Fecha', new Date(x.j.fecha).toLocaleString('es-PE', {timeZone:'America/Lima'})],
+          ['Consumidor', datos.nombre + ' — ' + datos.documento_tipo + ' ' + datos.documento_numero],
+          ['Domicilio', datos.domicilio],
+          ['Contacto', datos.telefono + ' · ' + datos.correo],
+          ['Servicio', datos.descripcion_servicio + ' — S/ ' + datos.monto.toFixed(2)],
+          ['Tipo', datos.tipo === 'QUEJA' ? 'Queja' : 'Reclamo'],
+          ['Detalle', datos.detalle],
+          ['Solución esperada', datos.pedido_consumidor],
+          ['Proveedor', 'Josue S. Mendoza R. — RUC 10427810556 — Urb. Las Brisas Mz. Y Lt. 15, Nuevo Chimbote']
+        ];
+        var t = $('constancia'); t.innerHTML = '';
+        filas.forEach(function(f){ var tr = document.createElement('tr'); var a = document.createElement('td'); var b = document.createElement('td'); a.textContent = f[0]; b.textContent = f[1]; tr.appendChild(a); tr.appendChild(b); t.appendChild(tr); });
+        $('vistaFormulario').classList.add('oculto'); $('vistaListo').classList.remove('oculto'); window.scrollTo(0,0);
+      })
+      .catch(function(){ err.textContent = 'No hay conexión. Inténtalo de nuevo.'; btn.disabled = false; btn.textContent = 'Enviar hoja de reclamación'; });
+  });
+  $('imprimir').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+</body>
+</html>
