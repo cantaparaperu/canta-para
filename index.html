@@ -165,7 +165,7 @@
   .mp-label{font-size:12px; color:var(--text2);}
   .btn-mp{
     width:100%; border:none; border-radius:12px; padding:13px; font-size:14px; font-weight:600;
-    color:#fff; background:#00AAE4; cursor:pointer; font-family:inherit;
+    color:#fff; background:linear-gradient(135deg,var(--accent1),var(--accent2)); cursor:pointer; font-family:inherit;
     display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;
   }
   .mp-note{text-align:center; font-size:11px; color:var(--text3);}
@@ -320,14 +320,14 @@ fbq('track','PageView');
   <!-- PANTALLA 2b: pago -->
   <div id="screen2b" class="hidden">
     <h1>Un último paso y es tuya</h1>
-    <p class="sub">Serás redirigido a Mercado Pago para finalizar la compra.</p>
+    <p class="sub" id="subPago">Serás redirigido a Mercado Pago para finalizar la compra.</p>
     <div class="mp-card">
       <div class="mp-row"><span style="font-size:13px; font-weight:600;">Ya casi es tuya</span></div>
       <p class="mp-label" style="margin:0 0 10px;">2 versiones</p>
       <div class="mp-row"><span class="mp-label">Precio</span><span class="price">S/ 29</span></div>
     </div>
     <button class="btn-mp" id="irPagoMP">Pagar con Mercado Pago</button>
-    <p class="mp-note">Volverás a esta página automáticamente después del pago.</p>
+    <p class="mp-note" id="notaPago">Volverás a esta página automáticamente después del pago.</p>
   </div>
 
   <!-- PANTALLA 2c: esperando -->
@@ -471,6 +471,7 @@ fbq('track','PageView');
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.culqi.com/checkout-js"></script>
 <script>
 const SUPABASE_URL = 'https://xhylofpcnnvlbyttucwa.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_WPc9cvNtiQjYtcAVBPaBHg__mPRqaiZ';
@@ -798,8 +799,137 @@ async function alVolverDeGoogle(){
   }
 }
 
-// ---------- Pago con Mercado Pago ----------
-$('irPagoMP').onclick = async () => {
+// ---------- Pago ----------
+// Pasarela activa: 'culqi' (ventana de pago de Culqi dentro de la página) o
+// 'mp' (Mercado Pago, que se conserva como respaldo).
+const PASARELA = 'culqi';
+const CULQI_YAPE = true; // si Culqi aún no activa Yape en el comercio, poner false
+
+(function ajustarTextosPago(){
+  if (PASARELA !== 'culqi') return;
+  $('subPago').textContent = CULQI_YAPE
+    ? 'Paga con tarjeta o Yape, sin salir de esta página.'
+    : 'Paga con tarjeta, sin salir de esta página.';
+  $('irPagoMP').textContent = 'Pagar S/ ' + PRECIO_SOLES;
+  $('notaPago').textContent = 'Pago seguro procesado por Culqi.';
+})();
+
+$('irPagoMP').onclick = () => (PASARELA === 'culqi' ? pagarConCulqi() : pagarConMercadoPago());
+
+function reactivarBotonPago(){
+  const boton = $('irPagoMP');
+  boton.disabled = false;
+  boton.textContent = PASARELA === 'culqi' ? 'Pagar S/ ' + PRECIO_SOLES : 'Pagar con Mercado Pago';
+}
+
+// ---- Culqi ----
+let culqiCheckout = null;      // la ventana de pago se crea una sola vez
+let culqiPedidoPagando = null; // pedido que se está pagando ahora
+
+async function pagarConCulqi() {
+  const boton = $('irPagoMP');
+  if (boton.disabled) return;
+  const pedidoId = localStorage.getItem('cp_pedido_id');
+  if (!pedidoId) {
+    mostrarAviso('No encontramos tu pedido. Vuelve a empezar, por favor.');
+    showScreen('screen1', 1);
+    return;
+  }
+  boton.disabled = true;
+  boton.textContent = 'Abriendo el pago...';
+  try {
+    if (typeof CulqiCheckout === 'undefined') {
+      throw new Error('No se pudo cargar el pago. Revisa tu conexión e intenta de nuevo.');
+    }
+    const { data: ses } = await supabaseClient.auth.getSession();
+    const sesion = ses && ses.session;
+    if (!sesion) throw new Error('Tu sesión venció. Inicia sesión con Google otra vez.');
+
+    culqiPedidoPagando = pedidoId;
+    if (!culqiCheckout) {
+      const rCfg = await fetch('/api/culqi-config');
+      const cfg = await rCfg.json();
+      if (!cfg.publicKey) throw new Error('El pago no está disponible por ahora. Intenta en unos minutos.');
+
+      const u = sesion.user || {};
+      const nombreCompleto = String((u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || '').trim();
+      const partes = nombreCompleto.split(/\s+/).filter(Boolean);
+      const config = {
+        settings: { title: 'Canta Para', currency: 'PEN', amount: PRECIO_SOLES * 100 },
+        client: {
+          email: u.email || '',
+          firstName: partes[0] || 'Cliente',
+          lastName: partes.slice(1).join(' ') || 'Canta Para'
+        },
+        options: {
+          lang: 'es',
+          modal: true,
+          paymentMethods: { tarjeta: true, yape: CULQI_YAPE },
+          paymentMethodsSort: CULQI_YAPE ? ['tarjeta', 'yape'] : ['tarjeta']
+        },
+        appearance: { theme: 'default', menuType: 'sidebar', buttonCardPayText: 'Pagar S/ ' + PRECIO_SOLES }
+      };
+      culqiCheckout = new CulqiCheckout(cfg.publicKey, config);
+      culqiCheckout.culqi = async () => {
+        if (culqiCheckout.token) {
+          const tokenId = culqiCheckout.token.id;
+          culqiCheckout.close();
+          await enviarCobroCulqi(culqiPedidoPagando, tokenId);
+        } else if (culqiCheckout.order) {
+          culqiCheckout.close();
+          mostrarAviso('Ese medio de pago todavía no está disponible. Elige tarjeta' + (CULQI_YAPE ? ' o Yape.' : '.'));
+          reactivarBotonPago();
+        } else {
+          const e = culqiCheckout.error;
+          if (e && (e.user_message || e.merchant_message)) mostrarAviso(e.user_message || e.merchant_message);
+          reactivarBotonPago();
+        }
+      };
+    }
+    culqiCheckout.open();
+    reactivarBotonPago(); // si cierra la ventana sin pagar, el botón sigue disponible
+  } catch (e) {
+    mostrarAviso(e.message || 'No se pudo abrir el pago.');
+    reactivarBotonPago();
+  }
+}
+
+async function enviarCobroCulqi(pedidoId, tokenId) {
+  const boton = $('irPagoMP');
+  boton.disabled = true;
+  boton.textContent = 'Procesando tu pago...';
+  let resp, data = {};
+  try {
+    const { data: ses } = await supabaseClient.auth.getSession();
+    if (!ses || !ses.session) throw new Error('Tu sesión venció. Inicia sesión con Google otra vez.');
+    localStorage.setItem('cp_pedido_pagando', String(pedidoId));
+    try {
+      resp = await fetch('/api/pagar-culqi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ses.session.access_token },
+        body: JSON.stringify({ pedidoId: pedidoId, tokenId: tokenId })
+      });
+    } catch (redError) {
+      // Se cortó la conexión: no sabemos si el cobro se hizo. La pantalla de espera
+      // consulta el pedido y muestra el resultado real (no se cobra dos veces).
+      vigilarPedido(pedidoId);
+      return;
+    }
+    try { data = await resp.json(); } catch (e) {}
+    if (!resp.ok && resp.status !== 202) {
+      localStorage.removeItem('cp_pedido_pagando');
+      throw new Error(data.error || 'No se pudo completar el pago. Intenta de nuevo.');
+    }
+    // Aprobado (o en revisión): la pantalla de espera sigue el pedido hasta que esté lista
+    vigilarPedido(pedidoId);
+  } catch (e) {
+    mostrarAviso(e.message || 'No se pudo completar el pago.');
+    reactivarBotonPago();
+  }
+}
+
+// ---- Mercado Pago (respaldo, se usa solo si PASARELA = 'mp') ----
+async function pagarConMercadoPago() {
   const boton = $('irPagoMP');
   if (boton.disabled) return;
   const textoOriginal = boton.textContent;
@@ -840,7 +970,7 @@ $('irPagoMP').onclick = async () => {
     boton.disabled = false;
     boton.textContent = textoOriginal;
   }
-};
+}
 
 // ---------- Pantalla de espera (círculo + frases) ----------
 const FRASES_ESPERA = [
