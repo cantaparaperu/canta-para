@@ -92,7 +92,7 @@
     background:linear-gradient(180deg, rgba(10,14,26,.30) 0%, rgba(10,14,26,.55) 30%, rgba(10,14,26,.88) 62%, var(--surface) 100%);
   }
   label{display:block; font-size:12px; color:var(--text2); margin-bottom:6px;}
-  input[type=text], textarea{
+  input[type=text], input[type=email], input[type=password], textarea{
     width:100%; background:var(--surface2); border:1px solid var(--line); color:var(--text);
     border-radius:10px; padding:11px 12px; font-size:14px; font-family:inherit; margin-bottom:14px;
     resize:none;
@@ -314,6 +314,15 @@ fbq('track','PageView');
       Tu pedido se guardará automáticamente.<br>
       Es seguro y rápido.<br>
       No necesitas crear una cuenta, solo tu Google.
+    </div>
+    <div id="accesoRevision" class="info-card hidden" style="margin-top:14px;">
+      <strong>Acceso de revisión</strong><br>
+      Solo para quien revisa la página: entra con el correo y la contraseña de prueba que se te entregaron.
+      <label for="revEmail" style="margin-top:10px;">Correo</label>
+      <input type="email" id="revEmail" autocomplete="username" autocapitalize="none" spellcheck="false">
+      <label for="revPass" style="margin-top:8px;">Contraseña</label>
+      <input type="password" id="revPass" autocomplete="current-password">
+      <button class="btn-main" type="button" id="revEntrar" style="margin-top:12px;">Entrar y continuar →</button>
     </div>
   </div>
 
@@ -708,6 +717,29 @@ $('irGoogle').onclick = async () => {
     boton.disabled = false;
   }
 };
+
+// ---- Acceso de revisión: solo existe si la página se abre con ?revision=1 ----
+if (new URLSearchParams(location.search).get('revision') === '1') {
+  $('accesoRevision').classList.remove('hidden');
+  $('revEntrar').onclick = async () => {
+    const boton = $('revEntrar');
+    if (boton.disabled) return;
+    const email = $('revEmail').value.trim();
+    const password = $('revPass').value;
+    if (!email || !password) { mostrarAviso('Escribe el correo y la contraseña de prueba.'); return; }
+    boton.disabled = true;
+    try {
+      localStorage.setItem('cp_pedido_en_progreso', 'true');
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await crearPedido(data.session);
+    } catch (e) {
+      mostrarAviso('No se pudo entrar: ' + e.message);
+    } finally {
+      boton.disabled = false;
+    }
+  };
+}
 
 async function crearPedido(session){
   const b = JSON.parse(localStorage.getItem('cp_pedido_borrador') || '{}');
