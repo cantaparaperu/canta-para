@@ -208,6 +208,15 @@
   .ficha p{font-size:13px; line-height:1.5; color:var(--text2); margin:0 0 10px;}
   .ficha ul{margin:0 0 12px; padding:0 0 0 18px; font-size:13px; color:var(--text);} .ficha li{margin:2px 0;}
   .ficha .ficha-precio{font-size:22px; font-weight:700; color:var(--text); margin:0 0 2px;} .ficha .ficha-precio small{font-size:12px; font-weight:400; color:var(--text2);}
+  .ficha-garantia{font-size:12px; line-height:1.5; color:var(--text2); margin:10px 0 0; text-align:center;}
+  .faq{width:100%; margin-top:14px; text-align:left;}
+  .faq h2{font-size:16px; margin:0 0 8px; font-weight:600;}
+  .faq details{background:var(--surface); border:1px solid var(--line); border-radius:12px; margin:0 0 8px; padding:0 14px;}
+  .faq summary{cursor:pointer; padding:12px 0; font-size:14px; font-weight:600; list-style:none; display:flex; justify-content:space-between; gap:10px; align-items:center;}
+  .faq summary::-webkit-details-marker{display:none;}
+  .faq summary::after{content:"+"; font-size:18px; color:var(--text2);}
+  .faq details[open] summary::after{content:"−";}
+  .faq details p{font-size:13px; line-height:1.55; color:var(--text2); margin:0 0 12px;}
   .pie-promo-marca{display:flex; align-items:center; gap:9px; font-weight:600; font-size:15px; margin-bottom:8px;}
   .pie-promo-texto{font-size:13px; color:var(--text2); margin:0;}
   .pie-info{flex:0 0 auto;}
@@ -395,6 +404,15 @@ fbq('track','PageView');
           <li>Pago seguro con tarjeta, dentro de la misma página</li>
         </ul>
         <button class="btn-main" type="button" id="fichaComprar">Crear mi canción →</button>
+        <p class="ficha-garantia"><strong>Garantía:</strong> cada pedido queda registrado en nuestro sistema. Si pagaste y tu canción no llegó, lo vemos en el registro y la generamos de nuevo sin costo o te devolvemos tu dinero.</p>
+      </div>
+      <div class="faq" id="preguntas">
+        <h2>Preguntas frecuentes</h2>
+        <details><summary>¿Cuánto demora mi canción?</summary><p>Unos pocos minutos después de pagar. Verás el avance en la misma página y, cuando esté lista, podrás escucharla y descargarla.</p></details>
+        <details><summary>¿Por qué tengo que entrar con Google?</summary><p>Para guardar tu pedido y que puedas encontrar tu canción si cierras la página. Solo recibimos tu nombre y correo, nada más de tu cuenta.</p></details>
+        <details><summary>¿Qué pasa si no me llega mi canción?</summary><p>Cada pedido queda registrado en nuestra base de datos, así que si pagaste y no recibiste tu canción lo sabremos. La generamos de nuevo sin costo o te devolvemos tu dinero. Escríbenos con tu número de pedido dentro de los 7 días.</p></details>
+        <details><summary>¿Puedo elegir el estilo o poner mi propia letra?</summary><p>Sí. Puedes contarnos cómo quieres que sea tu canción o pegar tu propia letra. Mientras más claro seas, mejor resultado.</p></details>
+        <details><summary>¿Es seguro pagar?</summary><p>Sí. El pago se hace con tarjeta dentro de la misma página, a través de una pasarela de pagos segura. Nosotros no guardamos los datos de tu tarjeta.</p></details>
       </div>
     </div>
     <div class="pie-info">
