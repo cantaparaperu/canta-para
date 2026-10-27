@@ -315,9 +315,10 @@ fbq('track','PageView');
       Es seguro y rápido.<br>
       No necesitas crear una cuenta, solo tu Google.
     </div>
+    <button type="button" id="abrirRevision" style="width:100%; margin-top:12px; padding:14px; border-radius:14px; border:1px solid var(--line); background:transparent; color:var(--text); font:inherit; font-size:15px; font-weight:600; cursor:pointer;">Acceso con correo</button>
     <div id="accesoRevision" class="info-card hidden" style="margin-top:14px;">
-      <strong>Acceso de revisión</strong><br>
-      Solo para quien revisa la página: entra con el correo y la contraseña de prueba que se te entregaron.
+      <strong>Acceso con correo</strong><br>
+      Entra con el correo y la contraseña de prueba que se te entregaron.
       <label for="revEmail" style="margin-top:10px;">Correo</label>
       <input type="email" id="revEmail" autocomplete="username" autocapitalize="none" spellcheck="false">
       <label for="revPass" style="margin-top:8px;">Contraseña</label>
@@ -718,9 +719,11 @@ $('irGoogle').onclick = async () => {
   }
 };
 
-// ---- Acceso de revisión: solo existe si la página se abre con ?revision=1 ----
-if (new URLSearchParams(location.search).get('revision') === '1') {
-  $('accesoRevision').classList.remove('hidden');
+// ---- Acceso con correo (para revisión): botón visible; se quitará cuando termine la revisión ----
+{
+  const mostrarRevision = () => { $('accesoRevision').classList.remove('hidden'); $('abrirRevision').classList.add('hidden'); };
+  $('abrirRevision').onclick = mostrarRevision;
+  if (new URLSearchParams(location.search).get('revision') === '1') mostrarRevision();
   $('revEntrar').onclick = async () => {
     const boton = $('revEntrar');
     if (boton.disabled) return;
