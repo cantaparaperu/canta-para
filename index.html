@@ -288,6 +288,7 @@ fbq('track','PageView');
       <p id="contadorDesc" style="font-size:11px; color:var(--text3); text-align:right; margin:-10px 0 14px;">0 / 330</p>
     </div>
     <div id="bloqueLetra" class="hidden">
+      <p id="avisoLetra" style="font-size:12px; line-height:1.5; color:var(--text3); margin:0 0 10px;">Aquí solo va tu letra completa. ¿Prefieres contarnos cómo quieres tu canción? <span id="volverDescripcion" style="text-decoration:underline; cursor:pointer;">Toca aquí</span></p>
       <label>Pega tu letra completa</label>
       <textarea id="letra" rows="5" maxlength="1500" placeholder="Escribe aquí la letra completa de tu canción..."></textarea>
       <p id="contadorLetra" style="font-size:11px; color:var(--text3); text-align:right; margin:-10px 0 14px;">0 / 1500</p>
@@ -444,8 +445,7 @@ fbq('track','PageView');
     </div>
     <p class="contacto" style="opacity:.85; font-size:11px; line-height:1.6;">Canta Para — canciones personalizadas<br>
       Josue S. Mendoza R. · RUC 10427810556<br>
-      Urb. Las Brisas Mz. Y Lt. 15, Nuevo Chimbote, Áncash<br>
-      <a href="https://wa.me/51904438567">WhatsApp 904 438 567</a> · <a href="mailto:cantaparaperu@gmail.com">cantaparaperu@gmail.com</a></p>
+      Nuevo Chimbote, Áncash · <a href="mailto:cantaparaperu@gmail.com">cantaparaperu@gmail.com</a></p>
     <p class="contacto" style="margin-top:0; opacity:.85; font-size:11px; line-height:1.9;"><a href="/terminos.html">Términos y condiciones</a> · <a href="/privacidad.html">Política de privacidad</a><br><a href="/devoluciones.html">Cambios y devoluciones</a> · <a href="/libro-de-reclamaciones.html" style="text-decoration:underline;">📒 Libro de Reclamaciones</a></p>
     </div>
   </footer>
@@ -567,6 +567,7 @@ function cambiarAModoLetra(){
   $('bloqueLetra').classList.remove('hidden');
   $('toggleLetra').textContent = 'Volver a descripción';
 }
+$('volverDescripcion').onclick = () => { if (modoLetra) $('toggleLetra').onclick(); };
 $('toggleLetra').onclick = () => {
   if (!modoLetra) {
     pedirConfirmacion(
