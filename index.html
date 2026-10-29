@@ -845,7 +845,7 @@ const CULQI_YAPE = true; // si Culqi aún no activa Yape en el comercio, poner f
   $('subPago').textContent = CULQI_YAPE
     ? 'Paga con tarjeta o Yape, sin salir de esta página.'
     : 'Paga con tarjeta, sin salir de esta página.';
-  $('irPagoMP').textContent = 'Pagar S/ ' + PRECIO_SOLES;
+  $('irPagoMP').textContent = 'Pagar';
   $('notaPago').textContent = 'Pago seguro procesado por Culqi.';
 })();
 
@@ -854,7 +854,7 @@ $('irPagoMP').onclick = () => (PASARELA === 'culqi' ? pagarConCulqi() : pagarCon
 function reactivarBotonPago(){
   const boton = $('irPagoMP');
   boton.disabled = false;
-  boton.textContent = PASARELA === 'culqi' ? 'Pagar S/ ' + PRECIO_SOLES : 'Pagar con Mercado Pago';
+  boton.textContent = PASARELA === 'culqi' ? 'Pagar' : 'Pagar con Mercado Pago';
 }
 
 // ---- Culqi ----
@@ -902,7 +902,7 @@ async function pagarConCulqi() {
           paymentMethods: { tarjeta: true, yape: CULQI_YAPE },
           paymentMethodsSort: CULQI_YAPE ? ['tarjeta', 'yape'] : ['tarjeta']
         },
-        appearance: { theme: 'default', menuType: 'sidebar', buttonCardPayText: 'Pagar S/ ' + PRECIO_SOLES }
+        appearance: { theme: 'default', menuType: 'sidebar', buttonCardPayText: 'Pagar', hiddenToolBarAmount: true }
       };
       culqiCheckout = new CulqiCheckout(cfg.publicKey, config);
       culqiCheckout.culqi = async () => {
