@@ -228,6 +228,13 @@
 fbq('init','1414707977526205');
 fbq('track','PageView');
 </script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NN07D32KS8"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-NN07D32KS8');
+</script>
 </head>
 <body>
 <div class="phone">
@@ -492,7 +499,13 @@ const PRECIO_SOLES = 29;
 const $ = id => document.getElementById(id);
 
 // ---------- Meta Pixel: eventos para medir los anuncios ----------
+// ---------- Google Analytics: mismos pasos, para ver dónde se va la gente ----------
+function eventoGA(nombre, datos){
+  try { if (typeof gtag === 'function') gtag('event', nombre, datos || {}); } catch (e) {}
+}
 function eventoMeta(nombre, datos, eventId){
+  if (nombre === 'InitiateCheckout') eventoGA('begin_checkout', { value: PRECIO_SOLES, currency: 'PEN' });
+  if (nombre === 'Purchase') eventoGA('purchase', { value: PRECIO_SOLES, currency: 'PEN', transaction_id: eventId || undefined });
   try {
     if (typeof fbq === 'function') {
       if (eventId) fbq('track', nombre, datos || {}, { eventID: eventId });
@@ -588,6 +601,7 @@ $('vozM').onclick = () => { $('vozM').classList.add('selected'); $('vozF').class
 $('vozF').onclick = () => { $('vozF').classList.add('selected'); $('vozM').classList.remove('selected'); };
 
 function showScreen(id, dot){
+  eventoGA('ver_pantalla', { pantalla: id });
   $('cargandoGoogle').classList.add('hidden');
   ['screen1','screen2','screen2b','screenWait','screen3'].forEach(s => $(s).classList.add('hidden'));
   $(id).classList.remove('hidden');
@@ -600,6 +614,7 @@ function showScreen(id, dot){
 $('irPagar').onclick = () => {
   const paraQuien = $('paraQuien').value.trim();
   if (!paraQuien) { mostrarAviso('Cuéntanos para quién es la canción.'); return; }
+  eventoGA('tocar_crear_cancion');
   const borrador = {
     paraQuien,
     descripcion: $('descripcion').value.trim(),
