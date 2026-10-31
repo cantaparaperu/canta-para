@@ -280,6 +280,9 @@ export default async function handler(req, res) {
         { estado: 'PENDIENTE_PAGO', debug_info: `culqi rechazó (${respuestaCulqi.status}): ${JSON.stringify(cargo).slice(0, 500)}` },
         '&estado=eq.COBRANDO'
       );
+      // Aviso al dueño con el motivo (solo datos del rechazo, nunca datos de la tarjeta)
+      const c = cargo || {};
+      await avisarDueno(`⚠️ Canta Para: pago rechazado en el pedido #${pedido.id}. Culqi (${respuestaCulqi.status}) dijo: ${String(c.merchant_message || c.user_message || 'sin detalle').slice(0, 200)} | tipo: ${String(c.type || '-').slice(0, 40)} | código: ${String(c.code || c.decline_code || '-').slice(0, 60)}`);
       const mensaje = (cargo && (cargo.user_message || cargo.merchant_message)) || 'No se pudo completar el pago. Prueba con otra tarjeta o con Yape.';
       return res.status(402).json({ error: String(mensaje).slice(0, 300) });
     }
