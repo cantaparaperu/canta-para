@@ -79,7 +79,12 @@ async function actualizarPedido(pedidoId, campos, filtroExtra = '') {
 // Instrucción para sunoapi (igual que en api/webhook-pago.js)
 function armarPrompt(pedido) {
   const nombre = String(pedido.dedicado_a || '').trim().slice(0, 60);
-  const base = String(pedido.descripcion || 'Canción personalizada').trim();
+  const escrita = String(pedido.descripcion || '').trim();
+  // Si el cliente no escribió nada, se pide el estilo que mejor funciona: balada romántica pop
+  const estiloPorDefecto = pedido.voz === 'femenina'
+    ? 'Romantic pop ballad with a female voice. Calm and soft in the verses, powerful and emotional in the choruses, building intensity from soft to strong. Modern melodic romantic voice, piano and guitar.'
+    : 'Romantic pop ballad with a male voice. Calm and low in the verses, powerful and emotional in the choruses, building intensity from soft to strong. Modern melodic romantic voice, piano and guitar.';
+  const base = escrita || estiloPorDefecto;
   const voz = pedido.voz === 'femenina'
     ? 'Cantada por una voz femenina (female vocals).'
     : 'Cantada por una voz masculina (male vocals).';

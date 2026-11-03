@@ -76,7 +76,12 @@ async function anotar(pedidoId, texto) {
 // Instrucción para sunoapi: el nombre de la persona va SIEMPRE, y se cuida el largo máximo (500)
 function armarPrompt(pedido) {
   const nombre = String(pedido.dedicado_a || '').trim().slice(0, 60);
-  const base = String(pedido.descripcion || 'Canción personalizada').trim();
+  const escrita = String(pedido.descripcion || '').trim();
+  // Si el cliente no escribió nada, se pide el estilo que mejor funciona: balada romántica pop
+  const estiloPorDefecto = pedido.voz === 'femenina'
+    ? 'Romantic pop ballad with a female voice. Calm and soft in the verses, powerful and emotional in the choruses, building intensity from soft to strong. Modern melodic romantic voice, piano and guitar.'
+    : 'Romantic pop ballad with a male voice. Calm and low in the verses, powerful and emotional in the choruses, building intensity from soft to strong. Modern melodic romantic voice, piano and guitar.';
+  const base = escrita || estiloPorDefecto;
   // En modo normal sunoapi ignora vocalGender: la voz se pide escrita en la instrucción
   const voz = pedido.voz === 'femenina'
     ? 'Cantada por una voz femenina (female vocals).'
