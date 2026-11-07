@@ -627,8 +627,36 @@ const UA = navigator.userAgent || '';
 const esNavegadorInterno = /FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|TikTok|musical_ly|BytedanceWebview|Snapchat|Line\/|; wv\)/i.test(UA);
 const esAndroid = /Android/i.test(UA);
 
+// Datos del anuncio (utm_*, fbclid...) para no perderlos al pasar a Chrome o al copiar el enlace
+function colaDeAnuncio(){
+  try {
+    const salida = new URLSearchParams();
+    new URLSearchParams(window.location.search).forEach((valor, clave) => {
+      if (/^utm_/i.test(clave) || clave === 'fbclid' || clave === 'gclid' || clave === 'ttclid') salida.append(clave, valor);
+    });
+    return salida.toString().slice(0, 600);
+  } catch (e) { return ''; }
+}
+function urlIntentChrome(){
+  const cola = colaDeAnuncio();
+  return 'intent://cantapara.app/' + (cola ? '?' + cola : '') + '#Intent;scheme=https;package=com.android.chrome;end';
+}
+// Ya leídos por Google Analytics y Meta, los datos del anuncio se quitan de la barra de direcciones
+function limpiarDireccion(){
+  try {
+    const u = new URL(window.location.href);
+    let cambio = false;
+    Array.from(u.searchParams.keys()).forEach(k => {
+      if (/^utm_/i.test(k) || k === 'fbclid' || k === 'gclid' || k === 'ttclid') { u.searchParams.delete(k); cambio = true; }
+    });
+    if (cambio) window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash);
+  } catch (e) {}
+}
+window.addEventListener('load', () => setTimeout(limpiarDireccion, 4000));
+
 function copiarEnlace(){
-  const url = 'https://cantapara.app';
+  const cola = colaDeAnuncio();
+  const url = 'https://cantapara.app' + (cola ? '/?' + cola : '');
   const ok = () => mostrarAviso('Enlace copiado. Abre Chrome o Safari, pégalo y entra a cantapara.app');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(ok).catch(() => mostrarAviso('Copia este enlace y ábrelo en Chrome o Safari: ' + url));
@@ -645,7 +673,7 @@ function mostrarAyudaNavegador(){
   if (esAndroid) {
     const abrir = document.createElement('button');
     abrir.className = 'btn-main'; abrir.textContent = 'Abrir en Chrome';
-    abrir.onclick = () => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; };
+    abrir.onclick = () => { window.location.href = urlIntentChrome(); };
     cont.appendChild(abrir);
   }
   const copiar = document.createElement('button');
@@ -676,7 +704,7 @@ if (esNavegadorInterno) {
   if (esAndroid) {
     const abrir = document.createElement('button');
     abrir.className = 'btn-main'; abrir.textContent = 'Abrir en Chrome';
-    abrir.onclick = () => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; };
+    abrir.onclick = () => { window.location.href = urlIntentChrome(); };
     cont.appendChild(abrir);
     $('puertaTexto').innerHTML = 'Para iniciar sesión y pagar, ábrelo en tu navegador. Toca <b>Abrir en Chrome</b>.<br><br>Si no se abre, toca los tres puntos <b>(⋯)</b> arriba a la derecha y elige <b>"Abrir en el navegador"</b>.';
   } else {
@@ -692,7 +720,7 @@ if (esNavegadorInterno) {
   try {
     if (esAndroid && !sessionStorage.getItem('cp_intent')) {
       sessionStorage.setItem('cp_intent', '1');
-      setTimeout(() => { window.location.href = 'intent://cantapara.app/#Intent;scheme=https;package=com.android.chrome;end'; }, 400);
+      setTimeout(() => { window.location.href = urlIntentChrome(); }, 400);
     }
   } catch (e) {}
 })();
