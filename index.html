@@ -654,6 +654,23 @@ function limpiarDireccion(){
 }
 window.addEventListener('load', () => setTimeout(limpiarDireccion, 4000));
 
+// Guarda de dónde llegó la persona (anuncio, enlace, etc.) para saber qué pedidos vienen de cada anuncio.
+// Se anota al entrar, porque al iniciar sesión con Google la página se recarga y los datos de la barra se pierden.
+(function guardarOrigen(){
+  try {
+    const cola = colaDeAnuncio();
+    if (cola) { localStorage.setItem('cp_origen', cola); return; }
+    if (!localStorage.getItem('cp_origen')) {
+      let ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+      localStorage.setItem('cp_origen', ref && ref.indexOf('cantapara.app') === -1 ? 'ref=' + ref : 'directo');
+    }
+  } catch (e) {}
+})();
+function origenGuardado(){
+  try { return (localStorage.getItem('cp_origen') || 'directo').slice(0, 600); } catch (e) { return 'directo'; }
+}
+
 function copiarEnlace(){
   const cola = colaDeAnuncio();
   const url = 'https://cantapara.app' + (cola ? '/?' + cola : '');
@@ -760,7 +777,7 @@ async function crearPedido(session){
     showScreen('screen1', 1);
     return;
   }
-  const { data, error } = await supabaseClient.from('pedidos').insert({
+  const datosPedido = {
     user_id: session.user.id,
     dedicado_a: b.paraQuien || '',
     descripcion: b.modoLetra ? b.letra : b.descripcion,
@@ -768,7 +785,12 @@ async function crearPedido(session){
     modo_letra: !!b.modoLetra,
     precio: PRECIO_SOLES,
     estado: 'PENDIENTE_PAGO'
-  }).select().single();
+  };
+  // El origen es solo un dato extra: si por cualquier razón no se pudiera guardar, el pedido se crea igual.
+  let { data, error } = await supabaseClient.from('pedidos').insert({ ...datosPedido, origen: origenGuardado() }).select().single();
+  if (error) {
+    ({ data, error } = await supabaseClient.from('pedidos').insert(datosPedido).select().single());
+  }
   if (error) {
     mostrarAviso('No se pudo guardar tu pedido: ' + error.message);
     showScreen('screen1', 1);
