@@ -169,6 +169,9 @@
     display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;
   }
   .mp-note{text-align:center; font-size:11px; color:var(--text3);}
+  .confianza{list-style:none; margin:0 0 16px; padding:0;}
+  .confianza li{position:relative; padding-left:22px; margin-bottom:8px; font-size:13px; line-height:1.4; color:var(--text2);}
+  .confianza li::before{content:'✔'; position:absolute; left:0; top:0; color:var(--accent1); font-weight:700;}
   .name-tag{font-size:13px; color:transparent; background:linear-gradient(90deg,var(--accent1),var(--accent2)); -webkit-background-clip:text; background-clip:text; margin:0 0 1rem;}
   .track{background:var(--surface2); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
   .track-top{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
@@ -328,14 +331,18 @@ gtag('config','G-NN07D32KS8');
   <!-- PANTALLA 2b: pago -->
   <div id="screen2b" class="hidden">
     <h1>Un último paso y es tuya</h1>
-    <p class="sub" id="subPago">Serás redirigido a Mercado Pago para finalizar la compra.</p>
+    <p class="sub" id="subPago">Paga con tarjeta o Yape, sin salir de esta página.</p>
     <div class="mp-card">
       <div class="mp-row"><span style="font-size:13px; font-weight:600;">Ya casi es tuya</span></div>
       <p class="mp-label" style="margin:0 0 10px;">2 versiones</p>
       <div class="mp-row"><span class="mp-label">Precio</span><span class="price">S/ 29</span></div>
     </div>
-    <button class="btn-mp" id="irPagoMP">Pagar con Mercado Pago</button>
-    <p class="mp-note" id="notaPago">Volverás a esta página automáticamente después del pago.</p>
+    <ul class="confianza">
+      <li>2 canciones completas dedicadas a esa persona especial, para escuchar y descargar.</li>
+      <li>Tu pedido queda registrado. Si algo falla, te enviamos tu canción por correo.</li>
+    </ul>
+    <button class="btn-mp" id="irPagoMP">Pagar</button>
+    <p class="mp-note" id="notaPago">Pago seguro procesado por Culqi.</p>
   </div>
 
   <!-- PANTALLA 2c: esperando -->
@@ -872,7 +879,13 @@ const PASARELA = 'culqi';
 const CULQI_YAPE = true; // si Culqi aún no activa Yape en el comercio, poner false
 
 (function ajustarTextosPago(){
-  if (PASARELA !== 'culqi') return;
+  if (PASARELA !== 'culqi') {
+    // Respaldo con Mercado Pago: los textos fijos de la página son los de Culqi, aquí se cambian
+    $('subPago').textContent = 'Serás redirigido a Mercado Pago para finalizar la compra.';
+    $('irPagoMP').textContent = 'Pagar con Mercado Pago';
+    $('notaPago').textContent = 'Volverás a esta página automáticamente después del pago.';
+    return;
+  }
   $('subPago').textContent = CULQI_YAPE
     ? 'Paga con tarjeta o Yape, sin salir de esta página.'
     : 'Paga con tarjeta, sin salir de esta página.';
