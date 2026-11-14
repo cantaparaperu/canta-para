@@ -1,5 +1,5 @@
 // Cobro con Culqi: recibe el token que genera la ventana de pago (tarjeta o Yape),
-// cobra S/29 desde el servidor y, si Culqi aprueba, pide la canción UNA sola vez.
+// cobra S/25 desde el servidor y, si Culqi aprueba, pide la canción UNA sola vez.
 //
 // Protecciones:
 //  - El monto lo fija el servidor (nunca el navegador).
@@ -10,7 +10,7 @@
 //  - Si no se sabe si Culqi cobró (corte de red, error 5xx), NO se reintenta el cobro:
 //    se avisa al dueño por Telegram para revisarlo en el panel de Culqi.
 
-const PRECIO_SOLES = 29; // debe coincidir con PRECIO_SOLES de index.html y api/crear-pago.js
+const PRECIO_SOLES = 25; // debe coincidir con PRECIO_SOLES de index.html y api/crear-pago.js
 const MONTO_CENTIMOS = PRECIO_SOLES * 100;
 const UMBRAL_CREDITOS = 120; // 12 créditos por pedido => unos 10 pedidos de margen
 
